@@ -1,0 +1,58 @@
+/* style.css */
+
+.login-container {
+    height: 100vh;
+    background-image: url("/img/login.png");
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-repeat: no-repeat;
+  }
+  
+  .login-box {
+    background: rgba(49, 47, 47, 0.7);
+    padding: 20px;
+    border-radius: 10px;
+    width: 400px;
+    text-align: center;
+    color: #fff;
+  }
+  
+  .login-box h2 {
+    margin-bottom: 20px;
+  }
+  
+  .login-form-button {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  .google-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+      background-color: #db4437;
+      color: white;
+  
+  }
+  
+  .google-button i {
+    margin-right: 10px;
+    
+  }
+  
+  .login-form-forgot {
+    float: right;
+  }
+  
+  .signup-link {
+    color: #fff;
+    text-decoration: none;
+  }
+  
+  .signup-link strong {
+    color: #28a745;
+  }
+  
