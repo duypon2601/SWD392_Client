@@ -4,6 +4,7 @@ import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import MenuPage from "./components/MenuPage";
 import CartPage from "./components/CartPage";
 import LoginPage from "./components/login/LoginPage"; // Thêm import
+import StudentManagement from "./components/StudentManagement"; // Thêm import
 
 function App() {
   const [count, setCount] = useState(0);
@@ -20,6 +21,10 @@ function App() {
     {
       path: "/login", // Thêm một trang đăng nhập nữa
       element: <LoginPage />,
+    },
+    {
+      path: "/student", // Thêm trang quản lý sinh viên
+      element: <StudentManagement />,
     },
   ]);
 
