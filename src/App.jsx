@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { ToastContainer } from "react-toastify";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
-import MenuPage from "./components/MenuPage";
-import CartPage from "./components/CartPage";
-import LoginPage from "./components/login/LoginPage"; // Thêm import
+import MenuPage from "./components/pages/Menu/MenuPage";
+import CartPage from "./components/pages/CartPage/CartPage";
+import LoginPage from "./components/pages/login/LoginPage"; // Thêm import
 import StudentManagement from "./components/StudentManagement"; // Thêm import
 
 function App() {
