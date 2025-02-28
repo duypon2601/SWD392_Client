@@ -12,6 +12,7 @@ function LoginPage() {
   const navigate = useNavigate();
 
   const onFinish = async (values) => {
+    console.log("cl",values);
     try {
       const res = await api.post("api/login", {
         username: values.username,

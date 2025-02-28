@@ -5,7 +5,8 @@ import MenuPage from "./components/pages/Menu/MenuPage";
 import CartPage from "./components/pages/CartPage/CartPage";
 import LoginPage from "./components/pages/login/LoginPage"; // Thêm import
 import StudentManagement from "./components/StudentManagement"; // Thêm import
-
+import FoodList from "./components/pages/FoodList/FoodList";
+import CustomerList from "./components/pages/CustomerList/CustomerList";
 function App() {
   const [count, setCount] = useState(0);
 
@@ -26,6 +27,15 @@ function App() {
       path: "/student", // Thêm trang quản lý sinh viên
       element: <StudentManagement />,
     },
+    {
+      path : "/foodlist",
+      element: <FoodList/>,
+    },
+    {
+      path: "/CustomerList",
+      element: <CustomerList/>,
+    }
+
   ]);
 
   return (

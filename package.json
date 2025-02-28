@@ -11,8 +11,9 @@
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.6.0",
-    "antd": "^5.24.0",
-    "axios": "^1.7.9",
+    "antd": "^5.24.2",
+    "axios": "^1.8.0",
+    "cors": "^2.8.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-redux": "^9.2.0",
