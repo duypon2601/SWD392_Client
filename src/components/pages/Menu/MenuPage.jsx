@@ -12,6 +12,7 @@ function MenuPage() {
 
   // Lấy danh sách món ăn từ API
   const fetchMenuData = async () => {
+    console.log("fetchMenuData");
     try {
       const res = await api.get("/food");
       if (res.status === 200 && res.data.data) {
