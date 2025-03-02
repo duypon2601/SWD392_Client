@@ -1,127 +1,124 @@
-import { Button, Form, Input, Modal, Table, Layout, message } from "antd";
+import { Button, Form, Input, Modal, Table, Layout, message, Popconfirm, Spin, Select } from "antd";
 import { useForm } from "antd/es/form/Form";
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../config/axios";
 
 const { Content } = Layout;
-const API_URL = "http://localhost:8080/api/customer"; // 🔥 Cập nhật API từ Swagger
+const { Option } = Select;
 
-function CustomerList() {
+function EmployeeList() {
   const [form] = useForm();
   const [visible, setVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [dataSource, setDataSource] = useState([]);
+  const [editingEmployee, setEditingEmployee] = useState(null);
 
   useEffect(() => {
-    fetchCustomers();
+    fetchEmployees();
   }, []);
 
-  // 📌 Lấy danh sách khách hàng từ API
-  const fetchCustomers = async () => {
+  const fetchEmployees = async () => {
+    setLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/getAll`);
-      setDataSource(response.data);
+      const response = await api.get("user/get/all");
+      setDataSource(response.data.data);
     } catch (error) {
-      console.error("Lỗi khi lấy danh sách khách hàng:", error);
-      message.error("Không thể lấy danh sách khách hàng");
+      console.error("Lỗi API:", error.response?.data || error.message);
+      message.error("Không thể lấy danh sách nhân viên. Vui lòng thử lại!");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // 📌 Xử lý thêm khách hàng
   const handleSubmit = async (values) => {
     try {
-      const response = await axios.post(`${API_URL}/create`, values);
-      setDataSource([...dataSource, response.data]);
-      setVisible(false);
-      form.resetFields();
-      message.success("Thêm khách hàng thành công!");
+      if (editingEmployee) {
+        await api.put(`user/update/${editingEmployee.user_id}`, values);
+        setDataSource(dataSource.map((item) => (item.user_id === editingEmployee.user_id ? { ...item, ...values } : item)));
+        message.success("Cập nhật nhân viên thành công!");
+      } else {
+        const response = await api.post("user/create", values);
+        setDataSource([...dataSource, response.data]);
+        message.success("Thêm nhân viên thành công!");
+      }
+      resetForm();
     } catch (error) {
-      console.error("Lỗi khi thêm khách hàng:", error);
-      message.error("Không thể thêm khách hàng");
+      console.error("Lỗi API:", error.response?.data || error.message);
+      message.error("Có lỗi xảy ra, vui lòng thử lại!");
     }
   };
 
-  // 📌 Xử lý xóa khách hàng
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`${API_URL}/delete/${id}`);
-      setDataSource(dataSource.filter((item) => item.id !== id));
-      message.success("Xóa khách hàng thành công!");
+      await api.delete(`user/delete/${id}`);
+      setDataSource(dataSource.filter((item) => item.user_id !== id));
+      message.success("Xóa nhân viên thành công!");
     } catch (error) {
-      console.error("Lỗi khi xóa khách hàng:", error);
-      message.error("Không thể xóa khách hàng");
+      console.error("Lỗi API:", error.response?.data || error.message);
+      message.error("Không thể xóa nhân viên");
     }
+  };
+
+  const openEditModal = (employee) => {
+    setEditingEmployee(employee);
+    form.setFieldsValue(employee);
+    setVisible(true);
+  };
+
+  const resetForm = () => {
+    setVisible(false);
+    setEditingEmployee(null);
+    form.resetFields();
   };
 
   const columns = [
-    { title: "Tên khách hàng", dataIndex: "name", key: "name" },
-    { title: "Số điện thoại", dataIndex: "phone", key: "phone" },
+    { title: "Tên nhân viên", dataIndex: "name", key: "name" },
+    { title: "Nhà hàng", dataIndex: "restaurant_name", key: "restaurant_name" },
     { title: "Email", dataIndex: "email", key: "email" },
-    { title: "Địa chỉ", dataIndex: "address", key: "address" },
-    {
-      title: "Tổng tiền đã dùng",
-      dataIndex: "totalSpent",
-      key: "totalSpent",
-      render: (text) => `${text.toLocaleString()} VND`,
-    },
+    { title: "Tên đăng nhập", dataIndex: "username", key: "username" },
+    { title: "Vai trò", dataIndex: "role", key: "role" },
     {
       title: "Hành động",
       key: "action",
       render: (_, record) => (
-        <Button type="link" danger onClick={() => handleDelete(record.id)}>
-          Xóa
-        </Button>
+        <>
+          <Button type="primary" onClick={() => openEditModal(record)}>Sửa</Button>
+          <Popconfirm
+            title="Bạn có chắc chắn muốn xóa?"
+            onConfirm={() => handleDelete(record.user_id)}
+            okText="Xóa"
+            cancelText="Hủy"
+          >
+            <Button type="primary" danger>Xóa</Button>
+          </Popconfirm>
+        </>
       ),
     },
   ];
 
   return (
     <Content style={{ padding: "20px", background: "#fff", flex: 1 }}>
-      <h1>Danh sách khách hàng</h1>
-      <Button type="primary" onClick={() => setVisible(true)}>
-        Thêm khách hàng
-      </Button>
-      <Table dataSource={dataSource} columns={columns} rowKey="id" />
+      <h1>Danh sách nhân viên</h1>
+      <Button type="primary" onClick={() => setVisible(true)}>Thêm nhân viên</Button>
+      {loading ? <Spin /> : <Table dataSource={dataSource} columns={columns} rowKey="user_id" />}
+      
       <Modal
-        title="Thêm khách hàng"
+        title={editingEmployee ? "Chỉnh sửa nhân viên" : "Thêm nhân viên"}
         open={visible}
-        onCancel={() => setVisible(false)}
+        onCancel={resetForm}
         onOk={() => form.submit()}
       >
-        <Form form={form} onFinish={handleSubmit}>
-          <Form.Item
-            name="name"
-            label="Tên khách hàng"
-            rules={[{ required: true, message: "Nhập tên khách hàng" }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="phone"
-            label="Số điện thoại"
-            rules={[{ required: true, message: "Nhập số điện thoại" }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="email"
-            label="Email"
-            rules={[{ required: true, message: "Nhập email" }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="address"
-            label="Địa chỉ"
-            rules={[{ required: true, message: "Nhập địa chỉ" }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="totalSpent"
-            label="Tổng tiền đã dùng"
-            rules={[{ required: true, message: "Nhập tổng tiền" }]}
-          >
-            <Input type="number" />
+        <Form form={form} onFinish={handleSubmit} layout="vertical">
+          <Form.Item name="name" label="Tên nhân viên" rules={[{ required: true, message: "Nhập tên nhân viên" }]}> <Input /> </Form.Item>
+          <Form.Item name="restaurant_name" label="Nhà hàng" rules={[{ required: true, message: "Nhập tên nhà hàng" }]}> <Input /> </Form.Item>
+          <Form.Item name="email" label="Email" rules={[{ required: true, type: "email", message: "Nhập email hợp lệ" }]}> <Input /> </Form.Item>
+          <Form.Item name="username" label="Tên đăng nhập" rules={[{ required: true, message: "Nhập tên đăng nhập" }]}> <Input /> </Form.Item>
+          <Form.Item name="password" label="Mật khẩu" rules={[{ required: !editingEmployee, message: "Nhập mật khẩu" }]}> <Input.Password /> </Form.Item>
+          <Form.Item name="role" label="Vai trò" rules={[{ required: true, message: "Chọn vai trò" }]}> 
+            <Select>
+              <Option value="ADMIN">Admin</Option>
+              <Option value="STAFF">Nhân viên</Option>
+            </Select> 
           </Form.Item>
         </Form>
       </Modal>
@@ -129,4 +126,4 @@ function CustomerList() {
   );
 }
 
-export default CustomerList;
+export default EmployeeList;
