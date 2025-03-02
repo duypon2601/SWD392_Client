@@ -7,6 +7,7 @@ import LoginPage from "./components/pages/login/LoginPage"; // Thêm import
 import StudentManagement from "./components/StudentManagement"; // Thêm import
 import FoodList from "./components/pages/FoodList/FoodList";
 import CustomerList from "./components/pages/CustomerList/CustomerList";
+import ListNhaHang from "./components/pages/ListNhaHang/ListNhaHang";
 function App() {
   const [count, setCount] = useState(0);
 
@@ -31,6 +32,11 @@ function App() {
       path : "/foodlist",
       element: <FoodList/>,
     },
+    {
+      path : "/listnhahang",
+      element: <ListNhaHang/>,
+    },
+    
     {
       path: "/CustomerList",
       element: <CustomerList/>,
