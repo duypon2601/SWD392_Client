@@ -1,104 +1,196 @@
-import { Button, Form, Input, Modal, Table, Upload, Layout, message } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
-import { useForm } from 'antd/es/form/Form';
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import {
+  Button,
+  Form,
+  Input,
+  Modal,
+  Table,
+  Layout,
+  message,
+  Select,
+  Popconfirm,
+} from "antd";
+import { useForm } from "antd/es/form/Form";
+import React, { useState, useEffect } from "react";
+import api from "../../config/axios";
 
 const { Content } = Layout;
-const API_URL = "https://your-api-url.com/foods"; // 🔥 Thay bằng API thật
+const { Option } = Select;
 
 function FoodList() {
   const [form] = useForm();
   const [visible, setVisible] = useState(false);
   const [dataSource, setDataSource] = useState([]);
+  const [categories, setCategories] = useState([]); // ✅ State lưu danh mục
 
-  // 🛠 Lấy danh sách món ăn từ API khi component được mount
+  // 🛠 Lấy danh sách món ăn & danh mục khi component mount
   useEffect(() => {
     fetchFoods();
+    fetchCategories();
   }, []);
 
+  // 🛠 Lấy danh sách món ăn
   const fetchFoods = async () => {
     try {
-      const response = await axios.get(API_URL);
-      setDataSource(response.data);
+      const response = await api.get("/food");
+      if (response.data.statusCode === 200 && response.data.data) {
+        setDataSource(response.data.data);
+      } else {
+        message.error(
+          response.data.message || "Không thể lấy danh sách món ăn"
+        );
+      }
     } catch (error) {
       console.error("Lỗi khi lấy danh sách món ăn:", error);
       message.error("Không thể lấy danh sách món ăn");
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const res = await api.get("/category");
+      if (res.data.statusCode === 200 && res.data.data) {
+        setCategories(res.data.data);
+      } else {
+        message.error(res.data.message || "Không thể lấy danh mục");
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy danh mục:", error);
+      message.error("Không thể lấy danh mục");
+    }
+  };
+
   // 🛠 Thêm món mới vào API
   const handleSubmit = async (values) => {
+    await form.validateFields();
     try {
-      const formData = new FormData();
-      formData.append("Tenmon", values.Tenmon);
-      formData.append("Gia", values.Gia);
-      formData.append("image", values.image?.fileList?.[0]?.originFileObj);
+      const newFood = {
+        food_id: 0,
+        name: values.name,
+        description: values.description,
+        image_url: values.image_url || null,
+        category_id: values.category_id,
+        status: "AVAILABLE",
+      };
 
-      const response = await axios.post(API_URL, formData, {
-        headers: { "Content-Type": "multipart/form-data" }
+      const response = await api.post("/food", newFood, {
+        headers: { "Content-Type": "application/json" },
       });
 
-      setDataSource([...dataSource, response.data]);
-      setVisible(false);
-      form.resetFields();
-      message.success("Thêm món ăn thành công!");
+      if (response.data.statusCode === 200) {
+        setDataSource([...dataSource, response.data.data]);
+        setVisible(false);
+        form.resetFields();
+        message.success("Thêm món ăn thành công!");
+        alert("Thêm món ăn thành công!");
+      } else {
+        message.error(response.data.message || "Không thể thêm món ăn");
+      }
     } catch (error) {
       console.error("Lỗi khi thêm món ăn:", error);
       message.error("Không thể thêm món ăn");
     }
   };
 
-  // 🛠 Xóa món ăn khỏi API
-  const handleDelete = async (id) => {
+  // 🛠 Xóa món ăn
+  const handleDelete = async (food_id) => {
     try {
-      await axios.delete(`${API_URL}/${id}`);
-      setDataSource(dataSource.filter(item => item.id !== id));
-      message.success("Xóa món ăn thành công!");
+      await api.delete(`/food/${food_id}`);
+      setDataSource(dataSource.filter((item) => item.food_id !== food_id));
+      alert("Xóa món ăn thành công!");
+      fetchFoods(); // cập nhập lại món ăn
     } catch (error) {
       console.error("Lỗi khi xóa món ăn:", error);
       message.error("Không thể xóa món ăn");
     }
   };
 
-  const columns = [
-    { title: 'Tên món', dataIndex: 'Tenmon', key: 'Tenmon' },
-    { title: 'Giá', dataIndex: 'Gia', key: 'Gia' },
-    {
-      title: 'Hình ảnh',
-      dataIndex: 'image',
-      key: 'image',
-      render: (image) => image ? <img src={image} alt="Hình món ăn" style={{ width: 50 }} /> : 'Không có ảnh',
-    },
-    {
-      title: 'Hành động',
-      key: 'action',
-      render: (_, record) => (
-        <Button type="link" danger onClick={() => handleDelete(record.id)}>
-          Xóa
-        </Button>
-      ),
-    },
-  ];
-
   return (
     <Layout>
-      <Content style={{ padding: '20px', background: '#fff', flex: 1 }}>
+      <Content style={{ padding: "20px", background: "#fff", flex: 1 }}>
         <h1>Các món ăn của quán</h1>
-        <Button type="primary" onClick={() => setVisible(true)}>Thêm món</Button>
-        <Table dataSource={dataSource} columns={columns} rowKey="id" />
-        <Modal title="Thêm món ăn" open={visible} onCancel={() => setVisible(false)} onOk={() => form.submit()}>
+        <Button type="primary" onClick={() => setVisible(true)}>
+          Thêm món
+        </Button>
+        <Table
+          dataSource={dataSource}
+          columns={[
+            { title: "Tên món", dataIndex: "name", key: "name" },
+            { title: "Mô tả", dataIndex: "description", key: "description" },
+            {
+              title: "Hình ảnh",
+              dataIndex: "image_url",
+              key: "image_url",
+              render: (image_url) =>
+                image_url ? (
+                  <img
+                    src={image_url}
+                    alt="Hình món ăn"
+                    style={{ width: 50 }}
+                  />
+                ) : (
+                  "Không có ảnh"
+                ),
+            },
+            { title: "Danh mục", dataIndex: "category_id", key: "category_id" },
+            { title: "Trạng thái", dataIndex: "status", key: "status" },
+            {
+              title: "Hành động",
+              key: "action",
+              render: (_, record) => (
+                <Popconfirm
+                  title="Xóa món ăn"
+                  description="Bạn có chắc chắn muốn xóa món ăn này không?"
+                  onConfirm={() => handleDelete(record.food_id)}
+                >
+                  <Button type="primary" danger>
+                    Xóa
+                  </Button>
+                </Popconfirm>
+              ),
+            },
+          ]}
+          rowKey="food_id"
+        />
+
+        <Modal
+          title="Thêm món ăn"
+          open={visible}
+          onCancel={() => setVisible(false)}
+          onOk={() => form.submit()}
+        >
           <Form form={form} onFinish={handleSubmit}>
-            <Form.Item name="Tenmon" label="Tên món ăn" rules={[{ required: true, message: "Làm ơn hãy nhập tên món" }]}>
+            <Form.Item
+              name="name"
+              label="Tên món ăn"
+              rules={[{ required: true, message: "Làm ơn hãy nhập tên món" }]}
+            >
               <Input />
             </Form.Item>
-            <Form.Item name="Gia" label="Giá tiền" rules={[{ required: true, message: "Làm ơn hãy nhập giá tiền" }]}>
-              <Input type="number" />
+            <Form.Item
+              name="description"
+              label="Mô tả"
+              rules={[{ required: true, message: "Làm ơn hãy nhập mô tả" }]}
+            >
+              <Input />
             </Form.Item>
-            <Form.Item name="image" label="Hình ảnh" rules={[{ required: true, message: "Làm ơn hãy tải lên hình ảnh" }]}>
-              <Upload beforeUpload={() => false} listType="picture">
-                <Button icon={<UploadOutlined />}>Tải ảnh lên</Button>
-              </Upload>
+            <Form.Item name="image_url" label="Hình ảnh">
+              <Input placeholder="Nhập URL hình ảnh" />
+            </Form.Item>
+            <Form.Item
+              name="category_id"
+              label="Danh mục"
+              rules={[{ required: true, message: "Làm ơn hãy chọn danh mục" }]}
+            >
+              <Select placeholder="Chọn danh mục">
+                {categories.map((category) => (
+                  <Select.Option
+                    key={category.category_id}
+                    value={category.category_id}
+                  >
+                    {category.name}
+                  </Select.Option>
+                ))}
+              </Select>
             </Form.Item>
           </Form>
         </Modal>

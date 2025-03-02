@@ -12,7 +12,7 @@ function LoginPage() {
   const navigate = useNavigate();
 
   const onFinish = async (values) => {
-    console.log("cl",values);
+    console.log("cl", values);
     try {
       const res = await api.post("api/login", {
         username: values.username,
@@ -20,6 +20,7 @@ function LoginPage() {
       });
 
       const user = res.data?.data;
+      console.log("user", user);
 
       toast.success("Login successfully!");
       localStorage.setItem("token", user.token);
