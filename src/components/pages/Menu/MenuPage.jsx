@@ -10,14 +10,12 @@ import {
   Tabs,
   Typography,
   FloatButton,
-  Modal,
-  Space,
-  Divider,
 } from "antd";
-import { ShoppingCartOutlined, SearchOutlined } from "@ant-design/icons";
+import { ShoppingCartOutlined } from "@ant-design/icons";
 import api from "../../config/axios";
 import "./MenuPage.css";
 import { useNavigate } from "react-router-dom";
+import { Spin } from "antd";
 
 const { Search } = Input;
 const { Content, Header } = Layout;
@@ -28,21 +26,24 @@ function MenuPage() {
   const [cart, setCart] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [menuData, setMenuData] = useState([]);
-  const [activeTab, setActiveTab] = useState("1");
-  const [searchVisible, setSearchVisible] = useState(false);
   const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchMenuData();
     fetchCategories();
   }, []);
 
-  const fetchMenuData = async () => {
+  const fetchMenuData = async (categoryId = null) => {
     try {
       const res = await api.get("/food");
       if (res.status === 200 && res.data.data) {
         setMenuData(res.data.data);
+        if (categoryId) {
+          setSelectedCategory(categoryId);
+        }
       } else {
         message.error("Không thể lấy dữ liệu món ăn!");
       }
@@ -57,6 +58,7 @@ function MenuPage() {
       const res = await api.get("/category");
       if (res.status === 200 && res.data.data) {
         setCategories(res.data.data);
+        setSelectedCategory(res.data.data[0]?.category_id || null); // Chọn danh mục đầu tiên nếu có
       } else {
         message.error("Không thể lấy danh mục!");
       }
@@ -66,65 +68,45 @@ function MenuPage() {
     }
   };
 
+  // Khi nhấn vào tab danh mục, gọi lại API để cập nhật món ăn
+  const handleCategoryClick = (categoryId) => {
+    setSelectedCategory(categoryId);
+    fetchMenuData(categoryId); // Load lại món ăn theo danh mục
+  };
+
+  // Lọc món ăn theo danh mục và từ khóa tìm kiếm
+  const filteredMenu = menuData
+    .filter(
+      (item) =>
+        selectedCategory === null || item.category_id === selectedCategory
+    )
+    .filter((item) =>
+      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
   const addToCart = (item) => {
     setCart((prevCart) => [...prevCart, item]);
     message.success(`${item.name} đã thêm vào giỏ hàng!`);
   };
-  const filteredMenu = menuData.filter((item) =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
+  // Điều hướng sang trang giỏ hàng
   const showCart = () => {
     if (cart.length === 0) {
       message.info("Giỏ hàng của bạn đang trống");
       return;
     }
-    navigate("/cart"); // Điều hướng đến trang giỏ hàng
-    const totalAmount = cart.reduce(
-      (total, item) => total + (item.price || 0),
-      0
-    );
-
-    Modal.info({
-      title: "🛒 Giỏ hàng của bạn",
-      width: 350,
-      content: (
-        <div style={{ maxHeight: "400px", overflow: "auto" }}>
-          {cart.map((item, index) => (
-            <div key={index} style={{ marginBottom: "10px" }}>
-              <Space>
-                <img
-                  src={item.image_url || "./img/lauchay.png"}
-                  alt={item.name}
-                  className="cart-image"
-                />
-                <div>
-                  <Text strong>{item.name}</Text>
-                  <Text style={{ display: "block" }}>
-                    {item.price?.toLocaleString() || 0} đ
-                  </Text>
-                </div>
-              </Space>
-              <Divider style={{ margin: "8px 0" }} />
-            </div>
-          ))}
-          <Text strong className="cart-total">
-            Tổng cộng: {totalAmount.toLocaleString()} đ
-          </Text>
-        </div>
-      ),
-      okText: "Thanh toán",
-      onOk: () => {
-        window.location.href = "/cart";
-      },
-    });
+    navigate("/cart");
   };
 
   return (
     <Layout className="mcdonalds-theme">
       {/* Header với logo và thanh tìm kiếm */}
       <Header className="header">
-        <img src="./img/mcdonalds-logo.png" alt="McDonald's" className="logo" />
+        <img
+          src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRJPsjc6b6gCibZVpcq235Jn-mdhT2nqLbKkQ&s"
+          alt="McDonald's"
+          className="logo"
+        />
         <Search
           placeholder="🔍 Tìm món ăn..."
           value={searchTerm}
@@ -135,8 +117,8 @@ function MenuPage() {
 
       {/* Tabs danh mục món ăn */}
       <Tabs
-        activeKey={activeTab}
-        onChange={setActiveTab}
+        activeKey={String(selectedCategory)}
+        onChange={(key) => handleCategoryClick(Number(key))}
         centered
         className="menu-tabs"
       >
@@ -160,9 +142,11 @@ function MenuPage() {
                     <Text strong className="food-name">
                       {item.name}
                     </Text>
-                    <Text className="food-price">
-                      {item.price?.toLocaleString()} đ
-                    </Text>
+                    <div>
+                      <Text className="food-description">
+                        {item.description}
+                      </Text>
+                    </div>
                     <Button
                       className="add-to-cart-btn"
                       onClick={() => addToCart(item)}
