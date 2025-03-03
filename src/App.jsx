@@ -8,12 +8,13 @@ import StudentManagement from "./components/StudentManagement"; // Thêm import
 import FoodList from "./components/pages/FoodList/FoodList";
 import CustomerList from "./components/pages/CustomerList/CustomerList";
 import ListNhaHang from "./components/pages/ListNhaHang/ListNhaHang";
+import DashBoard from "./components/pages/dashboard/dashboard";
 function App() {
   const [count, setCount] = useState(0);
 
   const router = createBrowserRouter([
     {
-      path: "/Menu",
+      path: "/",
       element: <MenuPage />,
     },
     {
@@ -28,18 +29,32 @@ function App() {
       path: "/student", // Thêm trang quản lý sinh viên
       element: <StudentManagement />,
     },
-    {
-      path: "/foodlist",
-      element: <FoodList />,
-    },
-    {
-      path: "/listnhahang",
-      element: <ListNhaHang />,
-    },
+    // {
+    //   path: "/foodlist",
+    //   element: <FoodList />,
+    // },
 
+    // {
+    //   path: "/CustomerList",
+    //   element: <CustomerList />,
+    // },
     {
-      path: "/CustomerList",
-      element: <CustomerList />,
+      path: "/dashboard",
+      element: <DashBoard />,
+      children: [
+        {
+          path: "/dashboard/FoodList",
+          element: <FoodList />,
+        },
+        {
+          path: "/dashboard/listnhahang",
+          element: <ListNhaHang />,
+        },
+        {
+          path: "/dashboard/CustomerList",
+          element: <CustomerList />,
+        },
+      ],
     },
   ]);
 
