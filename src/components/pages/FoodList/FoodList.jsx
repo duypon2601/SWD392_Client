@@ -20,7 +20,7 @@ function FoodList() {
   const [form] = useForm();
   const [visible, setVisible] = useState(false);
   const [dataSource, setDataSource] = useState([]);
-  const [categories, setCategories] = useState([]); // ✅ State lưu danh mục
+  const [categories, setCategories] = useState([]);
 
   // 🛠 Lấy danh sách món ăn & danh mục khi component mount
   useEffect(() => {
@@ -43,6 +43,7 @@ function FoodList() {
       console.error("Lỗi khi lấy danh sách món ăn:", error);
       message.error("Không thể lấy danh sách món ăn");
     }
+    console.log("dataSource", response.data.data);
   };
 
   const fetchCategories = async () => {
