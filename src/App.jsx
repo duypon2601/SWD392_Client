@@ -13,7 +13,7 @@ function App() {
 
   const router = createBrowserRouter([
     {
-      path: "/",
+      path: "/Menu",
       element: <MenuPage />,
     },
     {
@@ -29,19 +29,18 @@ function App() {
       element: <StudentManagement />,
     },
     {
-      path : "/foodlist",
-      element: <FoodList/>,
+      path: "/foodlist",
+      element: <FoodList />,
     },
     {
-      path : "/listnhahang",
-      element: <ListNhaHang/>,
+      path: "/listnhahang",
+      element: <ListNhaHang />,
     },
-    
+
     {
       path: "/CustomerList",
-      element: <CustomerList/>,
-    }
-
+      element: <CustomerList />,
+    },
   ]);
 
   return (

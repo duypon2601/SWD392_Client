@@ -1,18 +1,38 @@
 import React, { useEffect, useState } from "react";
-import { Input, Card, Button, Row, Col, Badge, message } from "antd";
-import { ShoppingCartOutlined } from "@ant-design/icons";
+import {
+  Input,
+  Card,
+  Button,
+  Row,
+  Col,
+  Badge,
+  message,
+  Layout,
+  Tabs,
+  Typography,
+  FloatButton,
+  Modal,
+  Space,
+  Divider,
+} from "antd";
+import { ShoppingCartOutlined, SearchOutlined } from "@ant-design/icons";
 import api from "../../config/axios";
 
 const { Search } = Input;
+const { Content } = Layout;
+const { TabPane } = Tabs;
+const { Title, Paragraph, Text } = Typography;
 
 function MenuPage() {
   const [cart, setCart] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [menuData, setMenuData] = useState([]);
+  const [activeTab, setActiveTab] = useState("1");
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [categories, setCategories] = useState([]);
 
   // Lấy danh sách món ăn từ API
   const fetchMenuData = async () => {
-    console.log("fetchMenuData");
     try {
       const res = await api.get("/food");
       if (res.status === 200 && res.data.data) {
@@ -26,8 +46,23 @@ function MenuPage() {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const res = await api.get("/category");
+      if (res.status === 200 && res.data.data) {
+        setCategories(res.data.data);
+      } else {
+        message.error("Không thể lấy danh mục!");
+      }
+    } catch (error) {
+      message.error("Lỗi kết nối API!");
+      console.error("API Error:", error);
+    }
+  };
+  console.log("categories", categories);
   useEffect(() => {
     fetchMenuData();
+    fetchCategories();
   }, []);
 
   // Thêm món vào giỏ hàng
@@ -41,124 +76,270 @@ function MenuPage() {
     item.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Hiển thị giỏ hàng
+  const showCart = () => {
+    if (cart.length === 0) {
+      message.info("Giỏ hàng của bạn đang trống");
+      return;
+    }
+
+    // Tính tổng tiền
+    const totalAmount = cart.reduce(
+      (total, item) => total + (item.price || 0),
+      0
+    );
+
+    Modal.info({
+      title: "Giỏ hàng của bạn",
+      width: 350,
+      content: (
+        <div style={{ maxHeight: "400px", overflow: "auto" }}>
+          {cart.map((item, index) => (
+            <div key={index} style={{ marginBottom: "10px" }}>
+              <Space>
+                <img
+                  src={item.image_url || "./img/lauchay.png"}
+                  alt={item.name}
+                  style={{
+                    width: "40px",
+                    height: "40px",
+                    objectFit: "cover",
+                    borderRadius: "4px",
+                  }}
+                />
+                <div>
+                  <div style={{ fontWeight: "bold" }}>{item.name}</div>
+                  <div>{item.price?.toLocaleString() || 0} đ</div>
+                </div>
+              </Space>
+              <Divider style={{ margin: "8px 0" }} />
+            </div>
+          ))}
+          <div
+            style={{
+              fontWeight: "bold",
+              textAlign: "right",
+              marginTop: "10px",
+            }}
+          >
+            Tổng cộng: {totalAmount.toLocaleString()} đ
+          </div>
+        </div>
+      ),
+      okText: "Thanh toán",
+      onOk: () => {
+        window.location.href = "/cart";
+      },
+      cancelText: "Đóng",
+      okCancel: true,
+    });
+  };
+
+  // Toggle thanh tìm kiếm
+  const toggleSearch = () => {
+    setSearchVisible(!searchVisible);
+  };
+
   return (
-    <div style={{ padding: "10px" }}>
-      {/* Header */}
-      <div
+    <Layout
+      style={{
+        minHeight: "100vh",
+        maxWidth: "4804800px", // Kích thước iPhone 14
+        margin: "0 auto",
+        background: "#f5f5f5",
+      }}
+    >
+      {/* Menu Tabs */}
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "10px",
+          background: "#333",
+          margin: 0,
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+        }}
+        tabBarStyle={{
+          color: "white",
+          margin: "auto",
+          justifyContent: "space-around",
         }}
       >
-        <h2 style={{ color: "black", margin: 0 }}>Thực Đơn</h2>
-        <Badge count={cart.length} showZero>
-          <Button
-            type="primary"
-            icon={<ShoppingCartOutlined />}
-            onClick={() => (window.location.href = "/cart")}
-            size="small"
-          >
-            Giỏ Hàng
-          </Button>
-        </Badge>
-      </div>
-
-      {/* Tìm kiếm */}
-      <Search
-        placeholder="Tìm món ăn..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        style={{ width: "100%", marginBottom: "10px" }}
-      />
-
-      {/* Danh sách món ăn */}
-      <Row gutter={[8, 8]}>
-        {filteredMenu.length > 0 ? (
-          filteredMenu.map((item) => (
-            <Col xs={12} sm={12} md={8} key={item.food_id}>
-              <Card
-                hoverable
+        {categories.map((category) => (
+          <TabPane
+            tab={
+              <div
                 style={{
-                  borderRadius: "10px",
-                  overflow: "hidden",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                  color:
+                    activeTab === String(category.category_id)
+                      ? "white"
+                      : "rgba(255,255,255,0.7)",
+                  padding: "16px 00",
+                  backgroundColor:
+                    activeTab === String(category.category_id)
+                      ? "#c2001b"
+                      : "transparent",
                 }}
-                cover={
+              >
+                {category.name}
+              </div>
+            }
+            key={String(category.category_id)}
+          />
+        ))}
+      </Tabs>
+
+      <Content style={{ padding: "16px", background: "#f5f5f5" }}>
+        {/* Thanh tìm kiếm (hiển thị khi searchVisible = true) */}
+        {searchVisible && (
+          <Search
+            placeholder="Tìm món ăn..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: "100%",
+              marginBottom: "16px",
+              borderRadius: "20px",
+            }}
+            allowClear
+          />
+        )}
+
+        {/* Danh sách món ăn */}
+        <Row gutter={[16, 16]}>
+          {filteredMenu.length > 0 ? (
+            filteredMenu.map((item) => (
+              <Col xs={12} sm={12} key={item.food_id}>
+                <Card
+                  hoverable
+                  style={{
+                    borderRadius: "8px",
+                    overflow: "hidden",
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                  }}
+                  bodyStyle={{
+                    padding: "16px",
+                    flexGrow: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
                   <div
                     style={{
+                      textAlign: "center",
+                      marginBottom: "12px",
+                      height: "120px",
                       display: "flex",
                       justifyContent: "center",
                       alignItems: "center",
-                      height: "150px",
-                      backgroundColor: "#f8f8f8",
                     }}
                   >
                     <img
+                      src={item.image_url || "./img/lauchay.png"}
                       alt={item.name}
-                      // src={item.image_url}
-                      src={"./img/lauchay.png"}
                       style={{
-                        width: "100%",
                         height: "100%",
-                        objectFit: "cover",
-                        borderRadius: "10px 10px 0 0",
+                        maxWidth: "100%",
+                        objectFit: "contain",
                       }}
                     />
                   </div>
-                }
+
+                  <Text
+                    style={{
+                      fontSize: "16px",
+                      fontWeight: "bold",
+                      color: "#c2001b",
+                      marginBottom: "8px",
+                      display: "block",
+                    }}
+                  >
+                    {item.name}
+                  </Text>
+
+                  <Paragraph
+                    style={{
+                      fontSize: "14px",
+                      color: "#666",
+                      marginBottom: "8px",
+                      flexGrow: 1,
+                    }}
+                    ellipsis={{ rows: 2 }}
+                  >
+                    {item.description}
+                  </Paragraph>
+
+                  <Text
+                    style={{
+                      fontSize: "16px",
+                      fontWeight: "bold",
+                      color: "#fa541c",
+                      marginBottom: "12px",
+                    }}
+                  >
+                    {item.price?.toLocaleString() || 0} đ
+                  </Text>
+
+                  <Button
+                    style={{
+                      borderColor: "#c2001b",
+                      color: "#c2001b",
+                      borderRadius: "20px",
+                      background: "white",
+                    }}
+                    onClick={() => addToCart(item)}
+                  >
+                    KHÁM PHÁ
+                  </Button>
+                </Card>
+              </Col>
+            ))
+          ) : (
+            <Col span={24}>
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "30px 0",
+                  color: "#999",
+                }}
               >
-                <Card.Meta
-                  title={
-                    <span
-                      style={{
-                        fontSize: "16px",
-                        fontWeight: "bold",
-                        color: "#333",
-                      }}
-                    >
-                      {item.name}
-                    </span>
-                  }
-                  description={
-                    <div>
-                      <p style={{ fontSize: "14px", color: "#555" }}>
-                        {item.description}
-                      </p>
-                      <p
-                        style={{
-                          fontSize: "14px",
-                          color: "#fa541c",
-                          fontWeight: "bold",
-                        }}
-                      >
-                        {item.price.toLocaleString()} đ
-                      </p>
-                    </div>
-                  }
-                />
-                <Button
-                  type="primary"
-                  block
-                  onClick={() => addToCart(item)}
-                  style={{
-                    marginTop: "10px",
-                    borderRadius: "5px",
-                  }}
-                >
-                  Thêm vào giỏ
-                </Button>
-              </Card>
+                Không tìm thấy món ăn nào!
+              </div>
             </Col>
-          ))
-        ) : (
-          <p style={{ textAlign: "center", width: "100%" }}>
-            Không tìm thấy món ăn nào!
-          </p>
-        )}
-      </Row>
-    </div>
+          )}
+        </Row>
+      </Content>
+
+      {/* Nút tìm kiếm nổi */}
+      <FloatButton
+        icon={<SearchOutlined />}
+        onClick={toggleSearch}
+        style={{
+          right: 24,
+          bottom: 90,
+          backgroundColor: "#ffbc0d",
+          borderColor: "#ffbc0d",
+        }}
+      />
+
+      {/* Nút giỏ hàng nổi */}
+      <FloatButton
+        icon={<ShoppingCartOutlined />}
+        badge={{ count: cart.length, color: "#c2001b" }}
+        onClick={showCart}
+        style={{
+          right: 24,
+          bottom: 24,
+          backgroundColor: "#c2001b",
+          borderColor: "#c2001b",
+          color: "white",
+        }}
+      />
+    </Layout>
   );
 }
 
