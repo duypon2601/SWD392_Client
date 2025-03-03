@@ -1,0 +1,89 @@
+.mcdonalds-theme {
+    background: #f8f8f8;
+    font-family: "Arial", sans-serif;
+  }
+  
+  .header {
+    background: #c2001b;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .logo {
+    height: 40px;
+  }
+  
+  .search-bar {
+    width: 200px;
+    border-radius: 20px;
+  }
+  
+  .menu-tabs {
+    background: #fff;
+    padding: 10px;
+  }
+  
+  .menu-container {
+    padding: 16px;
+  }
+  
+  .food-card {
+    border-radius: 12px;
+    text-align: center;
+    transition: transform 0.2s;
+  }
+  
+  .food-card:hover {
+    transform: scale(1.05);
+  }
+  
+  .food-image {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+  }
+  
+  .food-info {
+    padding: 12px;
+  }
+  
+  .food-name {
+    font-size: 16px;
+    color: #c2001b;
+  }
+  
+  .food-price {
+    font-size: 18px;
+    color: #fa541c;
+    font-weight: bold;
+  }
+  
+  .add-to-cart-btn {
+    background: #ffc72c;
+    color: black;
+    width: 100%;
+    border-radius: 20px;
+    font-weight: bold;
+  }
+  
+  .add-to-cart-btn:hover {
+    background: #ffbb00;
+  }
+  
+  .cart-image {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+  
+  .cart-total {
+    font-size: 16px;
+    display: block;
+    text-align: right;
+  }
+  

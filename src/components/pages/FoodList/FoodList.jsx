@@ -109,7 +109,11 @@ function FoodList() {
     <Layout>
       <Content style={{ padding: "20px", background: "#fff", flex: 1 }}>
         <h1>Các món ăn của quán</h1>
-        <Button type="primary" onClick={() => setVisible(true)}>
+        <Button
+          type="primary"
+          onClick={() => setVisible(true)}
+          style={{ marginBottom: 10 }}
+        >
           Thêm món
         </Button>
         <Table

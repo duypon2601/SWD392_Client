@@ -26,7 +26,7 @@ function LoginPage() {
       localStorage.setItem("token", user.token);
       dispatch(login(user));
       if (user.role === "ADMIN") {
-        navigate("/cart");
+        navigate("/dashboard");
       } else {
         navigate("/login");
       }

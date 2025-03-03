@@ -6,7 +6,7 @@ function CartPage() {
 
   // Hàm điều hướng về MenuPage
   const handleNavigate = () => {
-    navigate("/FoodList"); // Điều hướng về trang MenuPage
+    navigate("/"); // Điều hướng về trang MenuPage
   };
   return (
     <div style={{ padding: "20px" }}>
