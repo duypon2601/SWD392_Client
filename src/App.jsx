@@ -9,6 +9,7 @@ import FoodList from "./components/pages/FoodList/FoodList";
 import CustomerList from "./components/pages/CustomerList/CustomerList";
 import ListNhaHang from "./components/pages/ListNhaHang/ListNhaHang";
 import DashBoard from "./components/pages/dashboard/dashboard";
+import Category from "./components/pages/Category/category";
 function App() {
   const [count, setCount] = useState(0);
 
@@ -53,6 +54,10 @@ function App() {
         {
           path: "/dashboard/CustomerList",
           element: <CustomerList />,
+        },
+        {
+          path: "/dashboard/Category",
+          element: <Category />,
         },
       ],
     },

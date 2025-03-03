@@ -49,6 +49,7 @@ const Dashboard = () => {
       setItems([
         getItem("Food List", "foodlist", <AppstoreOutlined />),
         getItem("List Nhà Hàng", "listnhahang", <AppstoreOutlined />),
+        getItem("Category", "Category", <AppstoreOutlined />),
         getItem("Customer List", "CustomerList", <UserOutlined />),
       ]);
     }
