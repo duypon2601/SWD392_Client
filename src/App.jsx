@@ -10,6 +10,9 @@ import CustomerList from "./components/pages/CustomerList/CustomerList";
 import ListNhaHang from "./components/pages/ListNhaHang/ListNhaHang";
 import DashBoard from "./components/pages/dashboard/dashboard";
 import Category from "./components/pages/Category/category";
+import ListFood from "./components/pages/ListFood/ListFood";
+import Categori from "./components/pages/Categori/Categori";
+import { List } from "antd";
 function App() {
   const [count, setCount] = useState(0);
 
@@ -59,6 +62,14 @@ function App() {
           path: "/dashboard/Category",
           element: <Category />,
         },
+        {
+          path: "/dashboard/ListFood",
+          element: <ListFood />,
+        },
+        {
+          path: "/dashboard/Categori",
+          element: <Categori />,
+        }
       ],
     },
   ]);
