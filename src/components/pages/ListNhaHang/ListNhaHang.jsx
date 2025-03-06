@@ -53,12 +53,11 @@ function ListNhaHang() {
 
         if (editingBranch) {
           // Cập nhật chi nhánh trong danh sách
-          setDataSource((prev) =>
-            prev.map((b) =>
-              b.restaurant_id === editingBranch.restaurant_id ? { ...b, ...newBranch } : b
+          setDataSource(
+            dataSource.map((b) =>
+              b.restaurant_id === editingBranch.restaurant_id ? response.data.data : b
             )
           );
-          
         } else {
           // Thêm mới lên đầu danh sách
           setDataSource([response.data.data, ...dataSource]);
