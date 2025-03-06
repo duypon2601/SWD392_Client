@@ -9,7 +9,6 @@ function ListNhaHang() {
   const [form] = useForm();
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [modalLoading, setModalLoading] = useState(false);
   const [dataSource, setDataSource] = useState([]);
   const [editingBranch, setEditingBranch] = useState(null);
 
@@ -20,65 +19,74 @@ function ListNhaHang() {
   const fetchBranches = async () => {
     setLoading(true);
     try {
-      const response = await api.get("restaurant/get");
-      if (response.data && Array.isArray(response.data.data)) {
+      const response = await api.get("/restaurant/get");
+      console.log("Dữ liệu từ API:", response.data);
+      if (response.data.statusCode === 200) {
         setDataSource(response.data.data);
       } else {
-        setDataSource([]);
+        message.error("Không thể lấy danh sách nhà hàng!");
       }
     } catch (error) {
-      message.error("Không thể lấy danh sách nhà hàng!");
+      console.error("Lỗi kết nối API:", error);
+      message.error("Lỗi kết nối API!");
     } finally {
       setLoading(false);
     }
   };
 
   const handleSubmit = async (values) => {
-    setModalLoading(true);
+    console.log("Dữ liệu gửi đi:", values);
     try {
+      const newBranch = { name: values.name, location: values.location };
+      let response;
+  
       if (editingBranch) {
-        await api.put(`restaurant/${editingBranch.restaurant_id}`, values);
-        message.success("Cập nhật chi nhánh thành công!");
+        response = await api.put(`/restaurant/${editingBranch.restaurant_id}`, newBranch);
       } else {
-        await api.post("restaurant/create", values);
-        message.success("Thêm chi nhánh thành công!");
+        response = await api.post("/restaurant/create", newBranch);
       }
-      resetForm();
-      fetchBranches();
+  
+      console.log("Phản hồi API:", response.data);
+      
+      if (response.data.statusCode === 200) {
+        message.success(editingBranch ? "Cập nhật thành công!" : "Thêm thành công!");
+
+        if (editingBranch) {
+          // Cập nhật chi nhánh trong danh sách
+          setDataSource(
+            dataSource.map((b) =>
+              b.restaurant_id === editingBranch.restaurant_id ? response.data.data : b
+            )
+          );
+        } else {
+          // Thêm mới lên đầu danh sách
+          setDataSource([response.data.data, ...dataSource]);
+        }
+
+        resetForm();
+      } else {
+        message.error(response.data.message || "Lỗi xử lý dữ liệu!");
+      }
     } catch (error) {
-      message.error("Có lỗi xảy ra, vui lòng thử lại!");
-    } finally {
-      setModalLoading(false);
+      console.error("Lỗi API:", error);
+      message.error("Không thể kết nối API!");
     }
   };
 
   const handleDelete = async (id) => {
-    if (!id) return message.error("ID không hợp lệ!");
-
-    const url = `restaurant/${id}`; // Kiểm tra Swagger để đảm bảo URL chính xác
-    console.log("Gọi API xóa:", url);
-
+    console.log("ID cần xóa:", id);
     try {
-      const response = await api.delete(url);
-      if (response.status === 200) {
-        setDataSource((prev) => prev.filter((item) => item.restaurant_id !== id));
+      const response = await api.delete(`/restaurant/${id}`);
+      console.log("Phản hồi khi xóa:", response.data);
+      if (response.data.statusCode === 200) {
         message.success("Xóa chi nhánh thành công!");
+        setDataSource(dataSource.filter((item) => item.restaurant_id !== id));
       } else {
         message.error("Không thể xóa chi nhánh!");
       }
     } catch (error) {
-      console.error("Lỗi API:", error.response ? error.response.data : error);
-      if (error.response) {
-        if (error.response.status === 404) {
-          message.error("Chi nhánh không tồn tại hoặc API sai đường dẫn!");
-        } else if (error.response.status === 403) {
-          message.error("Bạn không có quyền xóa!");
-        } else {
-          message.error("Lỗi không xác định, thử lại sau!");
-        }
-      } else {
-        message.error("Lỗi kết nối API!");
-      }
+      console.error("Lỗi khi xóa:", error);
+      message.error("Lỗi khi xóa chi nhánh!");
     }
   };
 
@@ -117,10 +125,27 @@ function ListNhaHang() {
       <Button type="primary" onClick={() => setVisible(true)}>Thêm Chi Nhánh</Button>
       {loading ? <Spin /> : <Table dataSource={dataSource} columns={columns} rowKey="restaurant_id" />}
 
-      <Modal title={editingBranch ? "Chỉnh sửa Chi Nhánh" : "Thêm Chi Nhánh"} open={visible} confirmLoading={modalLoading} onCancel={resetForm} onOk={() => form.submit()}>
-        <Form form={form} onFinish={handleSubmit} layout="vertical">
-          <Form.Item name="name" label="Tên Chi Nhánh" rules={[{ required: true, message: "Nhập tên chi nhánh" }]}> <Input /> </Form.Item>
-          <Form.Item name="location" label="Địa Chỉ" rules={[{ required: true, message: "Nhập địa chỉ" }]}> <Input /> </Form.Item>
+      <Modal 
+        title={editingBranch ? "Chỉnh sửa Chi Nhánh" : "Thêm Chi Nhánh"} 
+        open={visible} 
+        onCancel={resetForm} 
+        onOk={() => form.validateFields().then(handleSubmit).catch(() => {})}
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item 
+            name="name" 
+            label="Tên Chi Nhánh" 
+            rules={[{ required: true, message: "Nhập tên chi nhánh" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item 
+            name="location" 
+            label="Địa Chỉ" 
+            rules={[{ required: true, message: "Nhập địa chỉ" }]}
+          >
+            <Input />
+          </Form.Item>
         </Form>
       </Modal>
     </Content>
