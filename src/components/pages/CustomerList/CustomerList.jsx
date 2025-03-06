@@ -1,16 +1,25 @@
-import { Button, Form, Input, Modal, Table, Layout, message, Popconfirm, Spin, Select } from "antd";
+import {
+  Button,
+  Form,
+  Input,
+  Modal,
+  Table,
+  Layout,
+  message,
+  Select,
+  Popconfirm,
+} from "antd";
 import { useForm } from "antd/es/form/Form";
 import React, { useState, useEffect } from "react";
+import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import api from "../../config/axios";
 
 const { Content } = Layout;
-const { Option } = Select;
 
 function EmployeeList() {
   const [form] = useForm();
   const [visible, setVisible] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [modalLoading, setModalLoading] = useState(false);
+  const [editVisible, setEditVisible] = useState(false);
   const [dataSource, setDataSource] = useState([]);
   const [editingEmployee, setEditingEmployee] = useState(null);
 
@@ -19,110 +28,152 @@ function EmployeeList() {
   }, []);
 
   const fetchEmployees = async () => {
-    setLoading(true);
     try {
-      const response = await api.get("user/get/all");
-      if (response.data && Array.isArray(response.data.data)) {
+      const response = await api.get("/user/get/all");
+      if (response.data.statusCode === 200) {
         setDataSource(response.data.data);
       } else {
-        setDataSource([]);
+        message.error("Không thể lấy danh sách nhân viên");
       }
     } catch (error) {
-      message.error(error.response?.data?.message || "Không thể lấy danh sách nhân viên. Vui lòng thử lại!");
-    } finally {
-      setLoading(false);
+      message.error("Lỗi kết nối API");
     }
   };
 
   const handleSubmit = async (values) => {
-    setModalLoading(true);
     try {
-      const payload = { ...values };
-      if (editingEmployee && !values.password) delete payload.password;
+      const employeeData = {
+        ...values,
+        password: editingEmployee ? undefined : values.password,
+      };
 
-      const config = { headers: { "Content-Type": "application/json" } };
+      const response = editingEmployee
+        ? await api.put(`/user/update/${editingEmployee.user_id}`, employeeData)
+        : await api.post("/user/create", employeeData);
 
-      if (editingEmployee) {
-        await api.put(`user/update/${editingEmployee.user_id}`, payload, config);
-        message.success("Cập nhật nhân viên thành công!");
+      if (response.data.statusCode === 200) {
+        setDataSource((prev) =>
+          editingEmployee
+            ? prev.map((emp) => (emp.user_id === editingEmployee.user_id ? response.data.data : emp))
+            : [...prev, response.data.data]
+        );
+        setVisible(false);
+        setEditVisible(false);
+        form.resetFields();
+        message.success(editingEmployee ? "Cập nhật nhân viên thành công!" : "Thêm nhân viên thành công!");
       } else {
-        await api.post("user/create", payload, config);
-        message.success("Thêm nhân viên thành công!");
+        message.error("Không thể xử lý dữ liệu nhân viên");
       }
-      resetForm();
-      fetchEmployees();
     } catch (error) {
-      message.error(error.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại!");
-    } finally {
-      setModalLoading(false);
+      message.error("Lỗi khi gửi dữ liệu");
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!id) return message.error("Không thể xóa nhân viên. ID không hợp lệ!");
+  const handleDelete = async (user_id) => {
     try {
-      await api.delete(`user/delete/${id}`);
-      setDataSource((prev) => prev.filter((item) => item.user_id !== id));
+      await api.delete(`/user/delete/${user_id}`);
+      setDataSource((prev) => prev.filter((emp) => emp.user_id !== user_id));
       message.success("Xóa nhân viên thành công!");
     } catch (error) {
-      message.error(error.response?.data?.message || "Không thể xóa nhân viên");
+      message.error("Không thể xóa nhân viên");
     }
   };
 
-  const openEditModal = (employee) => {
-    setEditingEmployee(employee);
-    form.setFieldsValue({ ...employee, password: "" });
-    setVisible(true);
-  };
-
-  const resetForm = () => {
-    form.resetFields();
-    setEditingEmployee(null);
-    setVisible(false);
-  };
-
-  const columns = [
-    { title: "Tên nhân viên", dataIndex: "name", key: "name" },
-    { title: "Nhà hàng", dataIndex: "restaurant_name", key: "restaurant_name" },
-    { title: "Email", dataIndex: "email", key: "email" },
-    { title: "Tên đăng nhập", dataIndex: "username", key: "username" },
-    { title: "Vai trò", dataIndex: "role", key: "role" },
-    {
-      title: "Hành động",
-      key: "action",
-      render: (_, record) => (
-        <>
-          <Button type="primary" style={{ marginRight: "5px" }} onClick={() => openEditModal(record)}>Sửa</Button>
-          <Popconfirm title="Bạn có chắc chắn muốn xóa?" onConfirm={() => handleDelete(record.user_id)} okText="Xóa" cancelText="Hủy">
-            <Button type="primary" danger>Xóa</Button>
-          </Popconfirm>
-        </>
-      ),
-    },
-  ];
-
   return (
-    <Content style={{ padding: "20px", background: "#fff", flex: 1 }}>
-      <h1>Danh sách nhân viên</h1>
-      <Button type="primary" onClick={() => setVisible(true)}>Thêm nhân viên</Button>
-      {loading ? <Spin /> : <Table dataSource={dataSource} columns={columns} rowKey={(record) => record.user_id ?? record.email ?? Math.random()} />}
+    <Layout>
+      <Content style={{ padding: "20px", background: "#fff", flex: 1 }}>
+        <h1>Danh sách nhân viên</h1>
+        <Button
+          type="primary"
+          onClick={() => setVisible(true)}
+          style={{ marginBottom: 10 }}
+          icon={<PlusOutlined />}
+        >
+          Thêm nhân viên
+        </Button>
+        <Table
+          dataSource={dataSource}
+          columns={[
+            { title: "Tên nhân viên", dataIndex: "name", key: "name" },
+            { title: "Nhà hàng", dataIndex: "restaurant_name", key: "restaurant_name" },
+            { title: "Email", dataIndex: "email", key: "email" },
+            { title: "Tên đăng nhập", dataIndex: "username", key: "username" },
+            { title: "Vai trò", dataIndex: "role", key: "role" },
+            {
+              title: "Hành động",
+              key: "action",
+              render: (_, record) => (
+                <>
+                  <Button
+                    type="primary"
+                    icon={<EditOutlined />}
+                    style={{ marginRight: 5 }}
+                    onClick={() => {
+                      setEditingEmployee(record);
+                      form.setFieldsValue({ ...record, password: "" });
+                      setEditVisible(true);
+                    }}
+                  >
+                    Sửa
+                  </Button>
+                  <Popconfirm
+                    title="Xóa nhân viên"
+                    description="Bạn có chắc chắn muốn xóa nhân viên này không?"
+                    onConfirm={() => handleDelete(record.user_id)}
+                  >
+                    <Button type="primary" danger icon={<DeleteOutlined />}>Xóa</Button>
+                  </Popconfirm>
+                </>
+              ),
+            },
+          ]}
+          rowKey="user_id"
+        />
 
-      <Modal title={editingEmployee ? "Chỉnh sửa nhân viên" : "Thêm nhân viên"} open={visible} confirmLoading={modalLoading} onCancel={resetForm} onOk={() => form.submit()}>
-        <Form form={form} onFinish={handleSubmit} layout="vertical">
-          <Form.Item name="name" label="Tên nhân viên" rules={[{ required: true, message: "Nhập tên nhân viên" }]}> <Input /> </Form.Item>
-          <Form.Item name="restaurant_name" label="Nhà hàng" rules={[{ required: true, message: "Nhập tên nhà hàng" }]}> <Input /> </Form.Item>
-          <Form.Item name="email" label="Email" rules={[{ required: true, type: "email", message: "Nhập email hợp lệ" }]}> <Input /> </Form.Item>
-          <Form.Item name="username" label="Tên đăng nhập" rules={[{ required: true, message: "Nhập tên đăng nhập" }]}> <Input /> </Form.Item>
-          <Form.Item name="password" label="Mật khẩu" rules={[{ required: !editingEmployee, message: "Nhập mật khẩu" }]}> <Input.Password /> </Form.Item>
-          <Form.Item name="role" label="Vai trò" rules={[{ required: true, message: "Chọn vai trò" }]}> 
-            <Select>
-              <Option value="ADMIN">Admin</Option>
-              <Option value="STAFF">Nhân viên</Option>
-            </Select> 
-          </Form.Item>
-        </Form>
-      </Modal>
-    </Content>
+        {/* Modal thêm nhân viên */}
+        <Modal
+          title="Thêm nhân viên"
+          open={visible}
+          onCancel={() => setVisible(false)}
+          onOk={() => form.submit()}
+        >
+          <Form form={form} onFinish={handleSubmit}>
+            <Form.Item name="name" label="Tên nhân viên" rules={[{ required: true, message: "Nhập tên nhân viên" }]}> <Input /> </Form.Item>
+            <Form.Item name="restaurant_id" label="Nhà hàng" rules={[{ required: true, message: "Nhập ID nhà hàng" }]}> <Input /> </Form.Item>
+            <Form.Item name="email" label="Email" rules={[{ required: true, type: "email", message: "Nhập email hợp lệ" }]}> <Input /> </Form.Item>
+            <Form.Item name="username" label="Tên đăng nhập" rules={[{ required: true, message: "Nhập tên đăng nhập" }]}> <Input /> </Form.Item>
+            <Form.Item name="password" label="Mật khẩu" rules={[{ required: true, message: "Nhập mật khẩu" }]}> <Input.Password /> </Form.Item>
+            <Form.Item name="role" label="Vai trò" rules={[{ required: true, message: "Chọn vai trò" }]}> 
+              <Select>
+                <Select.Option value="ADMIN">Admin</Select.Option>
+                <Select.Option value="STAFF">Nhân viên</Select.Option>
+              </Select>
+            </Form.Item>
+          </Form>
+        </Modal>
+
+        {/* Modal chỉnh sửa nhân viên */}
+        <Modal
+          title="Chỉnh sửa nhân viên"
+          open={editVisible}
+          onCancel={() => setEditVisible(false)}
+          onOk={() => form.submit()}
+        >
+          <Form form={form} onFinish={handleSubmit}>
+            <Form.Item name="name" label="Tên nhân viên"> <Input /> </Form.Item>
+            <Form.Item name="restaurant_id" label="Nhà hàng"> <Input /> </Form.Item>
+            <Form.Item name="email" label="Email"> <Input /> </Form.Item>
+            <Form.Item name="username" label="Tên đăng nhập"> <Input /> </Form.Item>
+            <Form.Item name="role" label="Vai trò"> 
+              <Select>
+                <Select.Option value="ADMIN">Admin</Select.Option>
+                <Select.Option value="STAFF">Nhân viên</Select.Option>
+              </Select>
+            </Form.Item>
+          </Form>
+        </Modal>
+      </Content>
+    </Layout>
   );
 }
 
