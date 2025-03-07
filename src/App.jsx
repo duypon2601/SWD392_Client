@@ -13,6 +13,7 @@ import Category from "./components/pages/Category/category";
 import ListFood from "./components/pages/ListFood/ListFood";
 import Categori from "./components/pages/Categori/Categori";
 import { List } from "antd";
+import Test from "./components/pages/Test/Test";
 function App() {
   const [count, setCount] = useState(0);
 
@@ -32,6 +33,10 @@ function App() {
     {
       path: "/student", // Thêm trang quản lý sinh viên
       element: <StudentManagement />,
+    },
+    {
+      path: "/test",
+      element: <Test />,
     },
     // {
     //   path: "/foodlist",
@@ -69,7 +74,7 @@ function App() {
         {
           path: "/dashboard/Categori",
           element: <Categori />,
-        }
+        },
       ],
     },
   ]);
