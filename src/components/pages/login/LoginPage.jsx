@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../../config/axios";
 import { Button, Form, Input } from "antd";
 import { useDispatch } from "react-redux";
-import { login } from "../../redux/features/counterSlice.js";
+import { login } from "../../redux/features/userSlice.js";
 import { toast } from "react-toastify";
 
 function LoginPage() {

@@ -1,21 +1,25 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice } from '@reduxjs/toolkit'; // ✅ Không import từ file khác
+
+const initialState = {
+  value: 0,
+};
 
 export const counterSlice = createSlice({
-  name: "user",
-  initialState: null,
+  name: 'counter',
+  initialState,
   reducers: {
-    // nhận vào stay hien tai va update bang payload
-    login: (state, actions) => {
-      state = actions.payload;
-      return state;
+    increment: (state) => {
+      state.value += 1;
     },
-    logout: () => {
-      return null;
+    decrement: (state) => {
+      state.value -= 1;
+    },
+    incrementByAmount: (state, action) => {
+      state.value += action.payload;
     },
   },
 });
 
-// Action creators are generated for each case reducer function
-export const { login, logout } = counterSlice.actions;
-export const selectUser = (store) => store.user;
+// Xuất reducers
+export const { increment, decrement, incrementByAmount } = counterSlice.actions;
 export default counterSlice.reducer;
