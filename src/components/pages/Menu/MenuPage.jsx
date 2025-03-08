@@ -16,6 +16,8 @@ import api from "../../config/axios";
 import "./MenuPage.css";
 import { useNavigate } from "react-router-dom";
 import { Spin } from "antd";
+import { useDispatch, useSelector } from "react-redux";
+import { addProduct } from "../../redux/features/cartSlice";
 
 const { Search } = Input;
 const { Content, Header } = Layout;
@@ -23,7 +25,6 @@ const { TabPane } = Tabs;
 const { Text } = Typography;
 
 function MenuPage() {
-  const [cart, setCart] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [menuData, setMenuData] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -84,19 +85,31 @@ function MenuPage() {
       item.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-  const addToCart = (item) => {
-    setCart((prevCart) => [...prevCart, item]);
-    message.success(`${item.name} đã thêm vào giỏ hàng!`);
-  };
+  // const addToCart = (item) => {
+  //   setCart((prevCart) => [...prevCart, item]);
+  //   message.success(`${item.name} đã thêm vào giỏ hàng!`);
+  // };
 
   // Điều hướng sang trang giỏ hàng
   const showCart = () => {
-    if (cart.length === 0) {
+    if (cartcount.length === 0) {
       message.info("Giỏ hàng của bạn đang trống");
       return;
     }
     navigate("/cart");
   };
+
+  const dispatch = useDispatch();
+
+  // Then update your handler
+  const handleAddToCart = (item) => {
+    // setCart((prevCart) => [...prevCart, item]);
+    dispatch(addProduct(item));
+    message.success(`${item.name} đã thêm vào giỏ hàng!`);
+  };
+
+  // đếm sanr phẩm khi add vào giỏ hàng
+  const cartcount = useSelector((state) => state.cart.items);
 
   return (
     <Layout className="mcdonalds-theme">
@@ -108,7 +121,7 @@ function MenuPage() {
           className="logo"
         />
         <Search
-          placeholder="🔍 Tìm món ăn..."
+          placeholder=" Tìm món ăn..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="search-bar"
@@ -149,7 +162,7 @@ function MenuPage() {
                     </div>
                     <Button
                       className="add-to-cart-btn"
-                      onClick={() => addToCart(item)}
+                      onClick={() => handleAddToCart(item)}
                     >
                       Thêm vào giỏ
                     </Button>
@@ -159,7 +172,7 @@ function MenuPage() {
             ))
           ) : (
             <Text strong style={{ textAlign: "center", width: "100%" }}>
-              😢 Không tìm thấy món ăn nào!
+              Không tìm thấy món ăn nào!
             </Text>
           )}
         </Row>
@@ -168,7 +181,7 @@ function MenuPage() {
       {/* Nút giỏ hàng nổi */}
       <FloatButton
         icon={<ShoppingCartOutlined />}
-        badge={{ count: cart.length }}
+        badge={{ count: cartcount.length  }}
         onClick={showCart}
       />
     </Layout>
