@@ -14,6 +14,8 @@ import ListFood from "./components/pages/ListFood/ListFood";
 import Categori from "./components/pages/Categori/Categori";
 import { List } from "antd";
 import Test from "./components/pages/Test/Test";
+import CreateAccount from "./components/pages/CreateAccount/CreateAccount";
+import CreateRestaurant from "./components/pages/CreateRestaurant/CreateRestaurant";
 function App() {
   const [count, setCount] = useState(0);
 
@@ -37,6 +39,14 @@ function App() {
     {
       path: "/test",
       element: <Test />,
+    },
+    {
+      path: "/CreateAccount",
+      element: <CreateAccount />,
+    },
+    {
+      path: "/CreateRestaurant",
+      element: <CreateRestaurant />,
     },
     // {
     //   path: "/foodlist",

@@ -27,9 +27,12 @@ function LoginPage() {
       dispatch(login(user));
       if (user.role === "ADMIN") {
         navigate("/dashboard");
+      } else if (user.role === "MANAGER") {
+        navigate("/Cart");
       } else {
         navigate("/login");
       }
+
     } catch (error) {
       console.log(error);
       toast.error(error.response?.data || "Login failed!");
