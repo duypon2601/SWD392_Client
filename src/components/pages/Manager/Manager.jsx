@@ -48,7 +48,7 @@ const Manager = () => {
     if (role === "MANAGER") {
       setItems([
         getItem("CreateAccount","CreateAccount ", <AppstoreOutlined />),
-        // getItem("Customer List", "CustomerList", <UserOutlined />),
+        getItem("CreateMenu", "CreateMenu", <UserOutlined />),
 
       ]);
     }
