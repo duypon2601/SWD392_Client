@@ -12,6 +12,7 @@ import { PlusOutlined } from "@ant-design/icons";
 import { useForm } from "antd/es/form/Form";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
+import uploadFile from "../utils/file";
 
 function StudentManagement() {
   const [students, setStudents] = useState([]);
@@ -48,11 +49,15 @@ function StudentManagement() {
 
   const handleSubmitStudent = async (values) => {
     try {
-      const newStudent = {
-        ...values,
-        image: fileList.map((file) => file.url || file.response?.url),
-      };
-      await axios.post(api, newStudent);
+      if (fileList.length > 0) {
+        const file = fileList[0];
+        console.log(file);
+        const url = await uploadFile(file.originFileObj);
+        students.image = url;
+        console.log("a", students.image);
+      }
+
+      await axios.post(api, students);
       alert("Thêm Nhan vien thành công!");
       fetchStudent();
       handleCloseModal();

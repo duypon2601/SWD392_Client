@@ -23,11 +23,51 @@ function FoodList() {
   const [dataSource, setDataSource] = useState([]);
   const [categories, setCategories] = useState([]);
   const [editingFood, setEditingFood] = useState(null);
+  // cai 2 dong nay la cua upload anh
+  // const [previewOpen, setPreviewOpen] = useState(false);
+  // const [previewImage, setPreviewImage] = useState('');
+  // const [fileList, setFileList] = useState([
+  //   {
+  //     uid: '-1',
+  //     name: 'image.png',
+  //     status: 'done',
+  //     url: 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
+  //   },
+  //   {
+  //     uid: '-2',
+  //     name: 'image.png',
+  //     status: 'done',
+  //     url: 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
+  //   },
+  //   {
+  //     uid: '-3',
+  //     name: 'image.png',
+  //     status: 'done',
+  //     url: 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
+  //   },
+  //   {
+  //     uid: '-4',
+  //     name: 'image.png',
+  //     status: 'done',
+  //     url: 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
+  //   },
+  //   {
+  //     uid: '-xxx',
+  //     percent: 50,
+  //     name: 'image.png',
+  //     status: 'uploading',
+  //     url: 'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
+  //   },
+  //   {
+  //     uid: '-5',
+  //     name: 'image.png',
+  //     status: 'error',
+  //   },
+  // ]);
 
   useEffect(() => {
     fetchFoods();
     fetchCategories();
-    
   }, []);
 
   const fetchFoods = async () => {
@@ -85,6 +125,42 @@ function FoodList() {
       message.error("Không thể thêm món ăn");
     }
   };
+
+  //upload img
+  // const getBase64 = (file) =>
+  //   new Promise((resolve, reject) => {
+  //     const reader = new FileReader();
+  //     reader.readAsDataURL(file);
+  //     reader.onload = () => resolve(reader.result);
+  //     reader.onerror = (error) => reject(error);
+  //   });
+
+  // const handlePreview = async (file) => {
+  //   if (!file.url && !file.preview) {
+  //     file.preview = await getBase64(file.originFileObj);
+  //   }
+  //   setPreviewImage(file.url || file.preview);
+  //   setPreviewOpen(true);
+  // };
+  // const handleChange = ({ fileList: newFileList }) => setFileList(newFileList);
+  // const uploadButton = (
+  //   <button
+  //     style={{
+  //       border: 0,
+  //       background: 'none',
+  //     }}
+  //     type="button"
+  //   >
+  //     <PlusOutlined />
+  //     <div
+  //       style={{
+  //         marginTop: 8,
+  //       }}
+  //     >
+  //       Upload
+  //     </div>
+  //   </button>
+  // );
 
   // 🛠 Xóa món ăn
   const handleDelete = async (food_id) => {
@@ -156,7 +232,7 @@ function FoodList() {
             { title: "Tên món", dataIndex: "name", key: "name" },
             { title: "Mô tả", dataIndex: "description", key: "description" },
             {
-              title: "Hình ảnh",
+              title: "Hình ảnh them mionsmions",
               dataIndex: "image_url",
               key: "image_url",
               render: (image_url) =>
