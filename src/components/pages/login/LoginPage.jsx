@@ -28,7 +28,7 @@ function LoginPage() {
       if (user.role === "ADMIN") {
         navigate("/dashboard");
       } else if (user.role === "MANAGER") {
-        navigate("/Cart");
+        navigate("/Manager");
       } else {
         navigate("/login");
       }
