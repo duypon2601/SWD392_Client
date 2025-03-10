@@ -47,7 +47,7 @@ const Dashboard = () => {
   useEffect(() => {
     if (role === "admin") {
       setItems([
-        getItem("FoodList","listfood", <AppstoreOutlined />),
+        getItem("ListFood", "listfood", <AppstoreOutlined />),
         getItem("List Nhà Hàng", "listnhahang", <AppstoreOutlined />),
         getItem("Categori", "Categori", <AppstoreOutlined />),
         getItem("Customer List", "CustomerList", <UserOutlined />),
@@ -58,7 +58,7 @@ const Dashboard = () => {
   useEffect(() => {
     const currentURI = location.pathname.split("/").pop();
     if (currentURI === "dashboard") {
-      navigate("/dashboard/foodlist");
+      navigate("/dashboard/ListFood");
     }
     setOpenKeys((prevKeys) => [...prevKeys, currentURI]);
   }, [location.pathname, navigate]);
@@ -182,7 +182,6 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-
 
 // import {
 //   Form,
@@ -361,7 +360,6 @@ export default Dashboard;
 
 // export default CategoryManagement;
 
-
 // import {
 //   Button,
 //   Form,
@@ -391,7 +389,7 @@ export default Dashboard;
 //   useEffect(() => {
 //     fetchFoods();
 //     fetchCategories();
-    
+
 //   }, []);
 
 //   const fetchFoods = async () => {

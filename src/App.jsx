@@ -4,8 +4,8 @@ import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import MenuPage from "./components/pages/Menu/MenuPage";
 import CartPage from "./components/pages/CartPage/CartPage";
 import LoginPage from "./components/pages/login/LoginPage"; // Thêm import
-import StudentManagement from "./components/StudentManagement"; // Thêm import
-import FoodList from "./components/pages/FoodList/FoodList";
+// import StudentManagement from "./components/StudentManagement"; // Thêm import
+// import FoodList from "./components/pages/FoodList/FoodList";
 import CustomerList from "./components/pages/CustomerList/CustomerList";
 import ListNhaHang from "./components/pages/ListNhaHang/ListNhaHang";
 import DashBoard from "./components/pages/dashboard/dashboard";
@@ -30,10 +30,10 @@ function App() {
       path: "/login", // Thêm một trang đăng nhập nữa
       element: <LoginPage />,
     },
-    {
-      path: "/student", // Thêm trang quản lý sinh viên
-      element: <StudentManagement />,
-    },
+    // {
+    //   path: "/student", // Thêm trang quản lý sinh viên
+    //   element: <StudentManagement />,
+    // },
     {
       path: "/test",
       element: <Test />,
@@ -51,10 +51,10 @@ function App() {
       path: "/dashboard",
       element: <DashBoard />,
       children: [
-        {
-          path: "/dashboard/FoodList",
-          element: <FoodList />,
-        },
+        // {
+        //   path: "/dashboard/FoodList",
+        //   element: <FoodList />,
+        // },
         {
           path: "/dashboard/listnhahang",
           element: <ListNhaHang />,
