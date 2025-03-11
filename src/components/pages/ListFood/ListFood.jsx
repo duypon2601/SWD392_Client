@@ -8,11 +8,14 @@ import {
   message,
   Select,
   Popconfirm,
+  Upload,
+  Image,
 } from "antd";
 import { useForm } from "antd/es/form/Form";
 import React, { useState, useEffect } from "react";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import api from "../../config/axios";
+import uploadFile from "../../../utils/file";
 
 const { Content } = Layout;
 
@@ -23,6 +26,9 @@ function ListFood() {
   const [dataSource, setDataSource] = useState([]);
   const [categories, setCategories] = useState([]);
   const [editingFood, setEditingFood] = useState(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewImage, setPreviewImage] = useState("");
+  const [fileList, setFileList] = useState([]);
 
   useEffect(() => {
     fetchFoods();
@@ -60,6 +66,13 @@ function ListFood() {
 
   // 🛠 Thêm món mới
   const handleSubmit = async (values) => {
+    if (fileList.length > 0) {
+      const file = fileList[0];
+      console.log(file);
+      // uploadFile(file.originFileObj);
+      const url = await uploadFile(file.originFileObj);
+      values.image_url = url;
+    }
     try {
       const newFood = {
         food_id: 0,
@@ -77,6 +90,7 @@ function ListFood() {
         setVisible(false);
         form.resetFields();
         message.success("Thêm món ăn thành công!");
+        console.log("dư liệu", response.data.data);
       } else {
         message.error(response.data.message || "Không thể thêm món ăn");
       }
@@ -84,6 +98,42 @@ function ListFood() {
       message.error("Không thể thêm món ăn");
     }
   };
+
+  // lấy ảnh
+  const getBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+
+  const handlePreview = async (file) => {
+    if (!file.url && !file.preview) {
+      file.preview = await getBase64(file.originFileObj);
+    }
+    setPreviewImage(file.url || file.preview);
+    setPreviewOpen(true);
+  };
+  const handleChange = ({ fileList: newFileList }) => setFileList(newFileList);
+  const uploadButton = (
+    <button
+      style={{
+        border: 0,
+        background: "none",
+      }}
+      type="button"
+    >
+      <PlusOutlined />
+      <div
+        style={{
+          marginTop: 8,
+        }}
+      >
+        Upload
+      </div>
+    </button>
+  );
 
   // 🛠 Xóa món ăn
   const handleDelete = async (food_id) => {
@@ -158,16 +208,19 @@ function ListFood() {
               title: "Hình ảnh",
               dataIndex: "image_url",
               key: "image_url",
-              render: (image_url) =>
-                image_url ? (
-                  <img
-                    src={image_url}
-                    alt="Hình món ăn"
-                    style={{ width: 50 }}
-                  />
-                ) : (
-                  "Không có ảnh"
-                ),
+              // render: (image_url) =>
+              //   image_url ? (
+              //     <img
+              //       src={image_url}
+              //       alt="Hình món ăn"
+              //       style={{ width: 50 }}
+              //     />
+              //   ) : (
+              //     "Không có ảnh"
+              //   ),
+              render: (image_url) => {
+                return <img src={image_url} alt="" width={200} />;
+              },
             },
             { title: "Danh mục", dataIndex: "category_id", key: "category_id" },
             { title: "Trạng thái", dataIndex: "status", key: "status" },
@@ -222,8 +275,19 @@ function ListFood() {
             >
               <Input />
             </Form.Item>
-            <Form.Item name="image_url" label="Hình ảnh">
+            {/* <Form.Item name="image_url" label="Hình ảnh">
               <Input placeholder="Nhập URL hình ảnh" />
+            </Form.Item> */}
+            <Form.Item label="image" name="image">
+              <Upload
+                action="https://660d2bd96ddfa2943b33731c.mockapi.io/api/upload"
+                listType="picture-card"
+                fileList={fileList}
+                onPreview={handlePreview}
+                onChange={handleChange}
+              >
+                {fileList.length >= 8 ? null : uploadButton}
+              </Upload>
             </Form.Item>
 
             {/* slect cứng đổ datadata */}
@@ -245,6 +309,19 @@ function ListFood() {
             </Form.Item>
           </Form>
         </Modal>
+        {previewImage && (
+          <Image
+            wrapperStyle={{
+              display: "none",
+            }}
+            preview={{
+              visible: previewOpen,
+              onVisibleChange: (visible) => setPreviewOpen(visible),
+              afterOpenChange: (visible) => !visible && setPreviewImage(""),
+            }}
+            src={previewImage}
+          />
+        )}
 
         {/* Modal chỉnh sửa món ăn */}
         <Modal

@@ -12,12 +12,15 @@ import DashBoard from "./components/pages/dashboard/dashboard";
 import Category from "./components/pages/Category/category";
 import ListFood from "./components/pages/ListFood/ListFood";
 import Categori from "./components/pages/Categori/Categori";
+import CafeManagement from "./components/pages/CafeManagement/CafeManagement";
 import { List } from "antd";
 import Test from "./components/pages/Test/Test";
 import CreateAccount from "./components/pages/CreateAccount/CreateAccount";
 import CreateRestaurant from "./components/pages/CreateRestaurant/CreateRestaurant";
-import Manager from  "./components/pages/Manager/Manager";
-import CreateMenu from "./components/pages/CreateMenu/CreateMenu";
+
+import Manager from "./components/pages/Manager/Manager";
+// import CreateMenu from "./components/pages/CreateMenu/CreateMenu";
+
 function App() {
   const [count, setCount] = useState(0);
 
@@ -42,28 +45,15 @@ function App() {
       path: "/test",
       element: <Test />,
     },
-    // {
-    //   path: "/CreateAccount",
-    //   element: <CreateAccount />,
-    // },
+    {
+      path: "CafeManagement",
+      element: <CafeManagement />,
+    },
     {
       path: "/CreateRestaurant",
       element: <CreateRestaurant />,
     },
-    // {
-    //   path: "/foodlist",
-    //   element: <FoodList />,
-    // },
 
-    {
-      path: "/cc",
-      element: <CreateMenu />,
-    },
-
-    // {
-    //   path: "/CustomerList",
-    //   element: <CustomerList />,
-    // },
     {
       path: "/dashboard",
       element: <DashBoard />,
@@ -97,16 +87,12 @@ function App() {
 
     {
       path: "/Manager",
-      element: <Manager/>,
+      element: <Manager />,
       children: [
         {
           path: "/Manager/CreateAccount",
           element: <CreateAccount />,
         },
-        // {
-        //   path: "/Manager/CreateMenu",
-        //   element: <CreateMenu />,
-        // },
       ],
     },
   ]);
