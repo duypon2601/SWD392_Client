@@ -7,6 +7,7 @@ import {
   UserOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  AppstoreAddOutlined,
 } from "@ant-design/icons";
 import {
   Layout,
@@ -42,22 +43,23 @@ const Manager = () => {
   const [openKeys, setOpenKeys] = useState([]);
   const location = useLocation();
   const navigate = useNavigate();
-  const role = "MANAGER";
+  const role = "manager";
 
   useEffect(() => {
-    if (role === "MANAGER") {
+    if (role === "manager") {
       setItems([
-        getItem("CreateAccount","CreateAccount ", <AppstoreOutlined />),
-        getItem("CreateMenu", "CreateMenu", <UserOutlined />),
-
+        getItem("CreateRestaurant", "CreateRestaurant", <AppstoreOutlined />),
+        getItem("CreateAccount", "CreateAccount", <AppstoreAddOutlined />),
+        getItem("CreateMenu", "CreateMenu", <AppstoreOutlined />),
+        // getItem("Customer List", "CustomerList", <UserOutlined />),
       ]);
     }
   }, [role]);
 
   useEffect(() => {
     const currentURI = location.pathname.split("/").pop();
-    if (currentURI === "Manager") {
-      navigate("/Manager");
+    if (currentURI === "manager") {
+      navigate("/Manager/CreateRestaurant");
     }
     setOpenKeys((prevKeys) => [...prevKeys, currentURI]);
   }, [location.pathname, navigate]);
@@ -106,7 +108,7 @@ const Manager = () => {
         >
           {items.map((item) => (
             <Menu.Item key={item.key} icon={item.icon}>
-              <Link to={`/dashboard/${item.key}`}>{item.label}</Link>
+              <Link to={`/manager/${item.key}`}>{item.label}</Link>
             </Menu.Item>
           ))}
         </Menu>
@@ -132,7 +134,7 @@ const Manager = () => {
             style={{ fontSize: "18px", marginLeft: "10px" }}
           />
           <Title level={3} style={{ margin: 0, color: "#333" }}>
-            ADMIN DASHBOARD
+            {role.toLocaleUpperCase()} DASHBOARD
           </Title>
           <Popconfirm
             title="Bạn có chắc muốn đăng xuất?"
@@ -173,7 +175,7 @@ const Manager = () => {
 
         {/* Footer */}
         <Footer style={{ textAlign: "center", backgroundColor: "#E3F2EE" }}>
-          ADMIN FANPAGE ©{new Date().getFullYear()} Moon_HotPot
+          {role.toUpperCase()} FANPAGE ©{new Date().getFullYear()} Moon_HotPot
         </Footer>
       </Layout>
     </Layout>
@@ -181,4 +183,3 @@ const Manager = () => {
 };
 
 export default Manager;
-    

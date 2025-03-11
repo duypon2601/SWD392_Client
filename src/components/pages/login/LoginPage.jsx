@@ -12,7 +12,6 @@ function LoginPage() {
   const navigate = useNavigate();
 
   const onFinish = async (values) => {
-    console.log("cl", values);
     try {
       const res = await api.post("api/login", {
         username: values.username,
@@ -32,7 +31,6 @@ function LoginPage() {
       } else {
         navigate("/login");
       }
-
     } catch (error) {
       console.log(error);
       toast.error(error.response?.data || "Login failed!");
