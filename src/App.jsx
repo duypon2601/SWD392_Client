@@ -19,7 +19,7 @@ import CreateAccount from "./components/pages/CreateAccount/CreateAccount";
 import CreateRestaurant from "./components/pages/CreateRestaurant/CreateRestaurant";
 
 import Manager from "./components/pages/Manager/Manager";
-// import CreateMenu from "./components/pages/CreateMenu/CreateMenu";
+import CreateMenu from "./components/pages/CreateMenu/CreateMenu";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -92,6 +92,14 @@ function App() {
         {
           path: "/Manager/CreateAccount",
           element: <CreateAccount />,
+        },
+        {
+          path: "/Manager/CreateRestaurant",
+          element: <CreateRestaurant />,
+        },
+        {
+          path: "/Manager/CreateMenu",
+          element: <CreateMenu />,
         },
       ],
     },

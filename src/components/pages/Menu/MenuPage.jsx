@@ -147,7 +147,7 @@ function MenuPage() {
               <Col xs={12} sm={8} md={6} key={item.food_id}>
                 <Card className="food-card" hoverable>
                   <img
-                    src={item.image_url || "./img/lauchay.png"}
+                    src={item.image_url}
                     alt={item.name}
                     className="food-image"
                   />
@@ -181,7 +181,7 @@ function MenuPage() {
       {/* Nút giỏ hàng nổi */}
       <FloatButton
         icon={<ShoppingCartOutlined />}
-        badge={{ count: cartcount.length  }}
+        badge={{ count: cartcount.length }}
         onClick={showCart}
       />
     </Layout>

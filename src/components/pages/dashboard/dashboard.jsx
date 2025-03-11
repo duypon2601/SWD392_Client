@@ -133,7 +133,7 @@ const Dashboard = () => {
             style={{ fontSize: "18px", marginLeft: "10px" }}
           />
           <Title level={3} style={{ margin: 0, color: "#333" }}>
-            ADMIN DASHBOARD
+            {role.toLocaleUpperCase()} DASHBOARD
           </Title>
           <Popconfirm
             title="Bạn có chắc muốn đăng xuất?"
