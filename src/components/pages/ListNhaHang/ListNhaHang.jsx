@@ -2,8 +2,13 @@ import { Button, Form, Input, Modal, Table, Layout, message, Popconfirm, Spin, U
 import { useForm } from "antd/es/form/Form";
 import React, { useState, useEffect } from "react";
 import { PlusOutlined } from '@ant-design/icons';
+import api from "../../config/axios";
 
 const { Content } = Layout;
+
+// Thay bằng URL và preset của bạn
+const CLOUDINARY_UPLOAD_URL = "https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/image/upload";
+const CLOUDINARY_PRESET_NAME = "YOUR_PRESET_NAME";
 
 function ListNhaHang() {
   const [form] = useForm();
@@ -13,24 +18,34 @@ function ListNhaHang() {
   const [editingBranch, setEditingBranch] = useState(null);
   const [fileList, setFileList] = useState([]);
 
-  useEffect(() => {
-    // Load dữ liệu nhà hàng từ localStorage
-    const savedData = localStorage.getItem("branches");
-    if (savedData) {
-      setDataSource(JSON.parse(savedData));
+  // Lấy danh sách nhà hàng từ API
+  const fetchBranches = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get("/restaurant/get");
+      if (response.data.statusCode === 200) {
+        setDataSource(response.data.data);
+      } else {
+        message.error("Không thể lấy danh sách nhà hàng!");
+      }
+    } catch (error) {
+      message.error("Lỗi kết nối API!");
+    } finally {
+      setLoading(false);
     }
-  }, []);
-
-  const saveToLocalStorage = (data) => {
-    localStorage.setItem("branches", JSON.stringify(data));
   };
 
+  useEffect(() => {
+    fetchBranches();
+  }, []);
+
+  // Mở modal chỉnh sửa
   const openEditModal = (branch) => {
     setEditingBranch(branch);
     form.setFieldsValue(branch);
     setVisible(true);
 
-    // Load ảnh từ localStorage nếu có
+    // Nếu có ảnh, hiển thị ảnh hiện tại
     if (branch.image) {
       setFileList([{ url: branch.image }]);
     } else {
@@ -45,66 +60,109 @@ function ListNhaHang() {
     setFileList([]);
   };
 
-  const handleSubmit = async (values) => {
-    const newBranch = {
-      name: values.name,
-      location: values.location,
-      image: values.image || (fileList[0]?.url ?? ""),
-    };
-
-    if (editingBranch) {
-      const updatedData = dataSource.map((branch) =>
-        branch.restaurant_id === editingBranch.restaurant_id ? { ...branch, ...newBranch } : branch
-      );
-      setDataSource(updatedData);
-      saveToLocalStorage(updatedData);
-      message.success("Cập nhật thành công!");
-    } else {
-      const newData = [...dataSource, { ...newBranch, restaurant_id: Date.now() }];
-      setDataSource(newData);
-      saveToLocalStorage(newData);
-      message.success("Thêm thành công!");
-    }
-    resetForm();
-  };
-
-  const handleDelete = (id) => {
-    const updatedData = dataSource.filter((branch) => branch.restaurant_id !== id);
-    setDataSource(updatedData);
-    saveToLocalStorage(updatedData);
-    message.success("Xóa chi nhánh thành công!");
-  };
-
+  // Xử lý upload lên Cloudinary
   const handleUpload = async ({ file }) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-      const base64Image = reader.result;
-      setFileList([{ url: base64Image }]);
-      form.setFieldsValue({ image: base64Image });
-    };
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", CLOUDINARY_PRESET_NAME);
+
+    try {
+      const response = await fetch(CLOUDINARY_UPLOAD_URL, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await response.json();
+
+      if (data.secure_url) {
+        setFileList([{ url: data.secure_url }]);
+        form.setFieldsValue({ image: data.secure_url });
+        message.success("Tải ảnh lên thành công!");
+      } else {
+        message.error("Lỗi khi tải ảnh lên Cloudinary!");
+      }
+    } catch (error) {
+      message.error("Không thể upload ảnh!");
+    }
+  };
+
+  // Gửi API thêm/sửa chi nhánh
+  const handleSubmit = async (values) => {
+    try {
+      let response;
+      const newBranch = {
+        name: values.name,
+        location: values.location,
+        image: values.image || (fileList[0]?.url ?? ""),
+      };
+
+      if (editingBranch) {
+        response = await api.put(`/restaurant/${editingBranch.restaurant_id}`, newBranch);
+        if (response.data.statusCode === 200) {
+          setDataSource((prev) =>
+            prev.map((branch) =>
+              branch.restaurant_id === editingBranch.restaurant_id ? { ...branch, ...newBranch } : branch
+            )
+          );
+          message.success("Cập nhật thành công!");
+        }
+      } else {
+        response = await api.post("/restaurant/create", newBranch);
+        if (response.data.statusCode === 200) {
+          setDataSource((prev) => [...prev, response.data.data]);
+          message.success("Thêm thành công!");
+        }
+      }
+
+      resetForm();
+    } catch (error) {
+      message.error("Không thể kết nối API!");
+    }
+  };
+
+  // Xóa chi nhánh
+  const handleDelete = async (id) => {
+    try {
+      const response = await api.delete(`/restaurant/${id}`);
+      if (response.data.statusCode === 200) {
+        setDataSource((prev) => prev.filter((branch) => branch.restaurant_id !== id));
+        message.success("Xóa chi nhánh thành công!");
+      } else {
+        message.error("Không thể xóa chi nhánh!");
+      }
+    } catch (error) {
+      message.error("Lỗi khi xóa chi nhánh!");
+    }
   };
 
   return (
     <Content style={{ padding: "20px", background: "#fff", flex: 1 }}>
       <h1>Danh sách Chi Nhánh</h1>
       <Button type="primary" onClick={() => setVisible(true)}>Thêm Chi Nhánh</Button>
-      {loading ? <Spin /> : <Table dataSource={dataSource} columns={[
-        { title: "Hình Ảnh", dataIndex: "image", key: "image", render: (text) => text ? <Image width={50} src={text} /> : "Không có ảnh" },
-        { title: "Tên Chi Nhánh", dataIndex: "name", key: "name" },
-        { title: "Địa Chỉ", dataIndex: "location", key: "location" },
-        {
-          title: "Hành động", key: "action", render: (_, record) => (
-            <>
-              <Button type="primary" style={{ marginRight: "5px" }} onClick={() => openEditModal(record)}>Sửa</Button>
-              <Popconfirm title="Bạn có chắc chắn muốn xóa?" onConfirm={() => handleDelete(record.restaurant_id)} okText="Xóa" cancelText="Hủy">
-                <Button type="primary" danger>Xóa</Button>
-              </Popconfirm>
-            </>
-          )
-        }
-      ]} rowKey="restaurant_id" />}
-      
+      {loading ? <Spin /> : (
+        <Table dataSource={dataSource} columns={[
+          {
+            title: "Hình Ảnh",
+            dataIndex: "image",
+            key: "image",
+            render: (text) => text ? <Image width={50} src={text} /> : "Không có ảnh",
+          },
+          { title: "Tên Chi Nhánh", dataIndex: "name", key: "name" },
+          { title: "Địa Chỉ", dataIndex: "location", key: "location" },
+          {
+            title: "Hành động",
+            key: "action",
+            render: (_, record) => (
+              <>
+                <Button type="primary" style={{ marginRight: "5px" }} onClick={() => openEditModal(record)}>Sửa</Button>
+                <Popconfirm title="Bạn có chắc chắn muốn xóa?" onConfirm={() => handleDelete(record.restaurant_id)} okText="Xóa" cancelText="Hủy">
+                  <Button type="primary" danger>Xóa</Button>
+                </Popconfirm>
+              </>
+            ),
+          },
+        ]} rowKey="restaurant_id" />
+      )}
+
       <Modal title={editingBranch ? "Chỉnh sửa Chi Nhánh" : "Thêm Chi Nhánh"} open={visible} onCancel={resetForm} onOk={() => form.validateFields().then(handleSubmit).catch(() => {})}>
         <Form form={form} layout="vertical">
           <Form.Item name="name" label="Tên Chi Nhánh" rules={[{ required: true, message: "Nhập tên chi nhánh" }]}><Input /></Form.Item>
