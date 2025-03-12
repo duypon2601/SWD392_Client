@@ -51,7 +51,7 @@ const Manager = () => {
         getItem("CreateRestaurant", "CreateRestaurant", <AppstoreOutlined />),
         getItem("CreateAccount", "CreateAccount", <AppstoreAddOutlined />),
         getItem("CreateMenu", "CreateMenu", <AppstoreOutlined />),
-        // getItem("Customer List", "CustomerList", <UserOutlined />),
+        getItem("CreateTable", "CreateTable", <AppstoreOutlined />),
       ]);
     }
   }, [role]);
