@@ -1,180 +1,238 @@
+import React, { useEffect, useState } from "react";
 import {
+  Table,
   Button,
+  Modal,
   Form,
   Input,
-  Modal,
-  Table,
-  Layout,
-  message,
   Select,
-  Popconfirm,
+  message,
+  Space,
 } from "antd";
-import { useForm } from "antd/es/form/Form";
-import React, { useState, useEffect } from "react";
-import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
-import api from "../../config/axios";
+import api from "../../config/axios"; // Đường dẫn
 
-const { Content } = Layout;
+const { Option } = Select;
 
-function EmployeeList() {
-  const [form] = useForm();
-  const [visible, setVisible] = useState(false);
-  const [editVisible, setEditVisible] = useState(false);
-  const [dataSource, setDataSource] = useState([]);
-  const [editingEmployee, setEditingEmployee] = useState(null);
+function CreateAccount() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [form] = Form.useForm();
 
   useEffect(() => {
-    fetchEmployees();
+    fetchUsers();
+    fetchRestaurants();
   }, []);
+  const [restaurants, setRestaurants] = useState([]);
 
-  const fetchEmployees = async () => {
+  const fetchRestaurants = async () => {
+    try {
+      const res = await api.get("/restaurant/get");
+      if (res.data.statusCode === 200) {
+        setRestaurants(res.data.data);
+      } else {
+        message.error("Không thể lấy danh sách nhà hàng");
+      }
+    } catch (error) {
+      message.error("Không thể lấy danh sách nhà hàng");
+    }
+  };
+
+  // Lấy danh sách tài khoản
+  const fetchUsers = async () => {
+    setLoading(true);
     try {
       const response = await api.get("/user/get/all");
-      if (response.data.statusCode === 200) {
-        setDataSource(response.data.data);
+      if (response.status === 200) {
+        setUsers(response.data.data);
       } else {
-        message.error("Không thể lấy danh sách nhân viên");
+        message.error("Không thể tải danh sách tài khoản!");
       }
     } catch (error) {
-      message.error("Lỗi kết nối API");
+      message.error("Lỗi kết nối API!");
+      console.error("Lỗi API:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSubmit = async (values) => {
-    try {
-      const employeeData = {
-        ...values,
-        password: editingEmployee ? undefined : values.password,
-      };
-
-      const response = editingEmployee
-        ? await api.put(`/user/update/${editingEmployee.user_id}`, employeeData)
-        : await api.post("/user/create", employeeData);
-
-      if (response.data.statusCode === 200) {
-        setDataSource((prev) =>
-          editingEmployee
-            ? prev.map((emp) => (emp.user_id === editingEmployee.user_id ? response.data.data : emp))
-            : [...prev, response.data.data]
-        );
-        setVisible(false);
-        setEditVisible(false);
-        form.resetFields();
-        message.success(editingEmployee ? "Cập nhật nhân viên thành công!" : "Thêm nhân viên thành công!");
-      } else {
-        message.error("Không thể xử lý dữ liệu nhân viên");
+  //  Mở modal thêm/sửa tài khoản
+  const openModal = (user = null) => {
+    setEditingUser(user);
+    form.setFieldsValue(
+      user || {
+        name: "",
+        email: "",
+        username: "",
+        password: "",
+        role: "",
+        restaurant_id: "",
       }
+    );
+    setModalVisible(true);
+  };
+
+  //  Gửi dữ liệu để thêm/sửa tài khoản
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      console.log(values);
+      
+      if (editingUser) {
+        // Sửa tài khoản
+        await api.put(`/user/${editingUser.user_id}`, values);
+        message.success("Cập nhật tài khoản thành công!");
+      } else {
+        // Thêm tài khoản mới
+        await api.post("/user/create", { ...values, user_id: 0 });
+        message.success("Thêm tài khoản thành công!");
+      }
+      fetchUsers(); // Load lại danh sách
+      setModalVisible(false);
+      form.resetFields();
     } catch (error) {
-      message.error("Lỗi khi gửi dữ liệu");
+      message.error("Lỗi khi lưu tài khoản!");
+      console.error("API Error:", error);
     }
   };
 
-  const handleDelete = async (user_id) => {
-    try {
-      await api.delete(`/user/delete/${user_id}`);
-      setDataSource((prev) => prev.filter((emp) => emp.user_id !== user_id));
-      message.success("Xóa nhân viên thành công!");
-    } catch (error) {
-      message.error("Không thể xóa nhân viên");
-    }
+  //  Xóa tài khoản
+  const handleDelete = async (userId) => {
+    Modal.confirm({
+      title: "Xác nhận xóa",
+      content: "Bạn có chắc chắn muốn xóa tài khoản này không?",
+      onOk: async () => {
+        try {
+          await api.delete(`/user/delete/${userId}`);
+          message.success("Xóa tài khoản thành công!");
+          fetchUsers();
+        } catch (error) {
+          message.error("Lỗi khi xóa tài khoản!");
+          console.error("API Error:", error);
+        }
+      },
+    });
   };
 
   return (
-    <Layout>
-      <Content style={{ padding: "20px", background: "#fff", flex: 1 }}>
-        <h1>Danh sách nhân viên</h1>
-        <Button
-          type="primary"
-          onClick={() => setVisible(true)}
-          style={{ marginBottom: 10 }}
-          icon={<PlusOutlined />}
-        >
-          Thêm nhân viên
-        </Button>
-        <Table
-          dataSource={dataSource}
-          columns={[
-            { title: "Tên nhân viên", dataIndex: "name", key: "name" },
-            { title: "Nhà hàng", dataIndex: "restaurant_name", key: "restaurant_name" },
-            { title: "Email", dataIndex: "email", key: "email" },
-            { title: "Tên đăng nhập", dataIndex: "username", key: "username" },
-            { title: "Vai trò", dataIndex: "role", key: "role" },
-            {
-              title: "Hành động",
-              key: "action",
-              render: (_, record) => (
-                <>
-                  <Button
-                    type="primary"
-                    icon={<EditOutlined />}
-                    style={{ marginRight: 5 }}
-                    onClick={() => {
-                      setEditingEmployee(record);
-                      form.setFieldsValue({ ...record, password: "" });
-                      setEditVisible(true);
-                    }}
-                  >
-                    Sửa
-                  </Button>
-                  <Popconfirm
-                    title="Xóa nhân viên"
-                    description="Bạn có chắc chắn muốn xóa nhân viên này không?"
-                    onConfirm={() => handleDelete(record.user_id)}
-                  >
-                    <Button type="primary" danger icon={<DeleteOutlined />}>Xóa</Button>
-                  </Popconfirm>
-                </>
-              ),
-            },
-          ]}
-          rowKey="user_id"
+    <div>
+      <h1>Danh sách nhân viên</h1>
+
+      <Button type="primary" onClick={() => openModal()}>
+        Thêm Tài Khoản
+      </Button>
+
+      {/* Bảng danh sách tài khoản */}
+      <Table
+        dataSource={users}
+        rowKey="user_id"
+        loading={loading}
+        style={{ marginTop: 20 }}
+      >
+        <Table.Column title="ID" dataIndex="user_id" key="user_id" />
+        <Table.Column title="Tên" dataIndex="name" key="name" />
+        <Table.Column title="Email" dataIndex="email" key="email" />
+        <Table.Column title="Tài khoản" dataIndex="username" key="username" />
+        <Table.Column title="Vai trò" dataIndex="role" key="role" />
+        <Table.Column
+          title="Nhà Hàng"
+          dataIndex="restaurant_name"
+          key="restaurant_name"
         />
+        <Table.Column
+          title="Hành Động"
+          key="actions"
+          render={(text, record) => (
+            <Space>
+              <Button onClick={() => openModal(record)} type={"primary"}>
+                Sửa
+              </Button>
+              <Button
+                danger
+                onClick={() => handleDelete(record.user_id)}
+                type={"primary"}
+              >
+                Xóa
+              </Button>
+            </Space>
+          )}
+        />
+      </Table>
 
-        {/* Modal thêm nhân viên */}
-        <Modal
-          title="Thêm nhân viên"
-          open={visible}
-          onCancel={() => setVisible(false)}
-          onOk={() => form.submit()}
-        >
-          <Form form={form} onFinish={handleSubmit}>
-            <Form.Item name="name" label="Tên nhân viên" rules={[{ required: true, message: "Nhập tên nhân viên" }]}> <Input /> </Form.Item>
-            <Form.Item name="restaurant_id" label="Nhà hàng" rules={[{ required: true, message: "Nhập ID nhà hàng" }]}> <Input /> </Form.Item>
-            <Form.Item name="email" label="Email" rules={[{ required: true, type: "email", message: "Nhập email hợp lệ" }]}> <Input /> </Form.Item>
-            <Form.Item name="username" label="Tên đăng nhập" rules={[{ required: true, message: "Nhập tên đăng nhập" }]}> <Input /> </Form.Item>
-            <Form.Item name="password" label="Mật khẩu" rules={[{ required: true, message: "Nhập mật khẩu" }]}> <Input.Password /> </Form.Item>
-            <Form.Item name="role" label="Vai trò" rules={[{ required: true, message: "Chọn vai trò" }]}> 
-              <Select>
-                <Select.Option value="ADMIN">Admin</Select.Option>
-                <Select.Option value="STAFF">Nhân viên</Select.Option>
-              </Select>
-            </Form.Item>
-          </Form>
-        </Modal>
+      {/* Modal Thêm/Sửa Tài Khoản */}
+      <Modal
+        title={editingUser ? "Chỉnh sửa tài khoản" : "Thêm tài khoản"}
+        open={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        onOk={handleSubmit}
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item
+            label="Họ và tên"
+            name="name"
+            rules={[{ required: true, message: "Vui lòng nhập tên!" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[
+              { required: true, message: "Vui lòng nhập email" },
+              {
+                pattern: /^[a-zA-Z0-9._%+-]+@gmail\.com$/,
+                message: "Email phải có đuôi @gmail.com",
+              },
+            ]}
+          >
+            <Input placeholder="Nhập email (@gmail.com)" />
+          </Form.Item>
 
-        {/* Modal chỉnh sửa nhân viên */}
-        <Modal
-          title="Chỉnh sửa nhân viên"
-          open={editVisible}
-          onCancel={() => setEditVisible(false)}
-          onOk={() => form.submit()}
-        >
-          <Form form={form} onFinish={handleSubmit}>
-            <Form.Item name="name" label="Tên nhân viên"> <Input /> </Form.Item>
-            <Form.Item name="restaurant_id" label="Nhà hàng"> <Input /> </Form.Item>
-            <Form.Item name="email" label="Email"> <Input /> </Form.Item>
-            <Form.Item name="username" label="Tên đăng nhập"> <Input /> </Form.Item>
-            <Form.Item name="role" label="Vai trò"> 
-              <Select>
-                <Select.Option value="ADMIN">Admin</Select.Option>
-                <Select.Option value="STAFF">Nhân viên</Select.Option>
-              </Select>
-            </Form.Item>
-          </Form>
-        </Modal>
-      </Content>
-    </Layout>
+          <Form.Item
+            label="Tài khoản"
+            name="username"
+            rules={[{ required: true, message: "Vui lòng nhập tài khoản" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Mật khẩu"
+            name="password"
+            rules={[
+              { required: !editingUser, message: "Vui lòng nhập mật khẩu!" },
+            ]}
+          >
+            <Input.Password />
+          </Form.Item>
+          <Form.Item
+            label="Vai trò"
+            name="role"
+            rules={[{ required: true, message: "Vui lòng chọn vai trò!" }]}
+          >
+            <Select>
+              <Option value="ADMIN">Admin</Option>
+              <Option value="MANAGER">Manager</Option>
+              <Option value="STAFF">Staff</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="restaurant_id" label="Nhà hàng">
+            <Select>
+              {restaurants.map((restaurant) => (
+                <Option
+                  key={restaurant.restaurantId}
+                  value={restaurant.restaurantId}
+                > 
+                  {restaurant.name}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
   );
 }
 
-export default EmployeeList;
+export default CreateAccount;

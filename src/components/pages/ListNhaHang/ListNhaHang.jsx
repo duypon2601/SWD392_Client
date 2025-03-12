@@ -1,7 +1,8 @@
-import { Button, Form, Input, Modal, Table, Layout, message, Popconfirm, Spin, Upload, Image } from "antd";
+import { Button, Form, Input, Modal, Table, Layout, message, Popconfirm, Spin, Space } from "antd";
 import { useForm } from "antd/es/form/Form";
 import React, { useState, useEffect } from "react";
 import { PlusOutlined } from '@ant-design/icons';
+import api from "../../config/axios";
 
 const { Content } = Layout;
 
@@ -11,109 +12,106 @@ function ListNhaHang() {
   const [loading, setLoading] = useState(false);
   const [dataSource, setDataSource] = useState([]);
   const [editingBranch, setEditingBranch] = useState(null);
-  const [fileList, setFileList] = useState([]);
 
-  useEffect(() => {
-    // Load dữ liệu nhà hàng từ localStorage
-    const savedData = localStorage.getItem("branches");
-    if (savedData) {
-      setDataSource(JSON.parse(savedData));
+  // Lấy danh sách nhà hàng từ API
+  const fetchBranches = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get("/restaurant/get");
+      if (response.status === 200) {
+        setDataSource(response.data.data);
+      } else {
+        message.error("Không thể lấy danh sách nhà hàng!");
+      }
+    } catch (error) {
+      message.error("Lỗi kết nối API!");
+    } finally {
+      setLoading(false);
     }
-  }, []);
-
-  const saveToLocalStorage = (data) => {
-    localStorage.setItem("branches", JSON.stringify(data));
   };
 
+  useEffect(() => {
+    fetchBranches();
+  }, []);
+
+  // Mở modal chỉnh sửa
   const openEditModal = (branch) => {
     setEditingBranch(branch);
     form.setFieldsValue(branch);
     setVisible(true);
-
-    // Load ảnh từ localStorage nếu có
-    if (branch.image) {
-      setFileList([{ url: branch.image }]);
-    } else {
-      setFileList([]);
-    }
   };
 
   const resetForm = () => {
     form.resetFields();
     setEditingBranch(null);
     setVisible(false);
-    setFileList([]);
   };
 
-  const handleSubmit = async (values) => {
-    const newBranch = {
-      name: values.name,
-      location: values.location,
-      image: values.image || (fileList[0]?.url ?? ""),
-    };
-
-    if (editingBranch) {
-      const updatedData = dataSource.map((branch) =>
-        branch.restaurant_id === editingBranch.restaurant_id ? { ...branch, ...newBranch } : branch
-      );
-      setDataSource(updatedData);
-      saveToLocalStorage(updatedData);
-      message.success("Cập nhật thành công!");
-    } else {
-      const newData = [...dataSource, { ...newBranch, restaurant_id: Date.now() }];
-      setDataSource(newData);
-      saveToLocalStorage(newData);
-      message.success("Thêm thành công!");
+  // Gửi API thêm/sửa chi nhánh
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      if (editingBranch) {
+        await api.put(`/restaurant/${editingBranch.restaurantId}`, values);
+        message.success("Cập nhật nhà hàng thành công!");
+      } else {
+        await api.post("/restaurant/create", { ...values, restaurantId: 0 });
+        message.success("Thêm nhà hàng thành công!");
+      }
+      fetchBranches();
+      resetForm();
+    } catch (error) {
+      message.error("Lỗi khi lưu nhà hàng!");
     }
-    resetForm();
   };
 
-  const handleDelete = (id) => {
-    const updatedData = dataSource.filter((branch) => branch.restaurant_id !== id);
-    setDataSource(updatedData);
-    saveToLocalStorage(updatedData);
-    message.success("Xóa chi nhánh thành công!");
-  };
-
-  const handleUpload = async ({ file }) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-      const base64Image = reader.result;
-      setFileList([{ url: base64Image }]);
-      form.setFieldsValue({ image: base64Image });
-    };
+  // Xóa chi nhánh
+  const handleDelete = async (id) => {
+    Modal.confirm({
+      title: "Xác nhận xóa",
+      content: "Bạn có chắc chắn muốn xóa nhà hàng này không?",
+      onOk: async () => {
+        try {
+          await api.delete(`/restaurant/${id}`);
+          message.success("Xóa nhà hàng thành công!");
+          fetchBranches();
+        } catch (error) {
+          message.error("Lỗi khi xóa nhà hàng!");
+        }
+      },
+    });
   };
 
   return (
     <Content style={{ padding: "20px", background: "#fff", flex: 1 }}>
       <h1>Danh sách Chi Nhánh</h1>
       <Button type="primary" onClick={() => setVisible(true)}>Thêm Chi Nhánh</Button>
-      {loading ? <Spin /> : <Table dataSource={dataSource} columns={[
-        { title: "Hình Ảnh", dataIndex: "image", key: "image", render: (text) => text ? <Image width={50} src={text} /> : "Không có ảnh" },
-        { title: "Tên Chi Nhánh", dataIndex: "name", key: "name" },
-        { title: "Địa Chỉ", dataIndex: "location", key: "location" },
-        {
-          title: "Hành động", key: "action", render: (_, record) => (
-            <>
-              <Button type="primary" style={{ marginRight: "5px" }} onClick={() => openEditModal(record)}>Sửa</Button>
-              <Popconfirm title="Bạn có chắc chắn muốn xóa?" onConfirm={() => handleDelete(record.restaurant_id)} okText="Xóa" cancelText="Hủy">
-                <Button type="primary" danger>Xóa</Button>
-              </Popconfirm>
-            </>
-          )
-        }
-      ]} rowKey="restaurant_id" />}
+      {loading ? <Spin /> : (
+        <Table 
+        dataSource={dataSource} 
+        columns={[
+          { title: "ID", dataIndex: "restaurantId", key: "restaurantId" },
+          { title: "Tên Chi Nhánh", dataIndex: "name", key: "name" },
+          { title: "Địa Chỉ", dataIndex: "location", key: "location" },
+          {
+            title: "Hành động",
+            key: "action",
+            render: (_, record) => (
+              <Space>
+                <Button type="primary" onClick={() => openEditModal(record)}>Sửa</Button>
+                <Button type="primary" danger onClick={() => handleDelete(record.restaurantId)}>Xóa</Button>
+              </Space>
+            ),
+          },
+        ]} 
+        rowKey="restaurantId" 
+      />
       
-      <Modal title={editingBranch ? "Chỉnh sửa Chi Nhánh" : "Thêm Chi Nhánh"} open={visible} onCancel={resetForm} onOk={() => form.validateFields().then(handleSubmit).catch(() => {})}>
+      )}
+      <Modal title={editingBranch ? "Chỉnh sửa Chi Nhánh" : "Thêm Chi Nhánh"} open={visible} onCancel={resetForm} onOk={handleSubmit}>
         <Form form={form} layout="vertical">
           <Form.Item name="name" label="Tên Chi Nhánh" rules={[{ required: true, message: "Nhập tên chi nhánh" }]}><Input /></Form.Item>
           <Form.Item name="location" label="Địa Chỉ" rules={[{ required: true, message: "Nhập địa chỉ" }]}><Input /></Form.Item>
-          <Form.Item name="image" label="Hình ảnh">
-            <Upload listType="picture-card" showUploadList={false} customRequest={handleUpload}>
-              {fileList.length > 0 ? <img src={fileList[0].url} alt="image" style={{ width: "100%" }} /> : <PlusOutlined />}
-            </Upload>
-          </Form.Item>
         </Form>
       </Modal>
     </Content>
