@@ -7,199 +7,183 @@ import {
   Input,
   Select,
   message,
-  Space,
+  Popconfirm,
 } from "antd";
-import api from "../../config/axios"; // Đường dẫn API của bạn
-
-const { Option } = Select;
+import api from "../../config/axios";
+import { useSelector } from "react-redux";
+import { selectUser } from "../../redux/features/userSlice";
 
 function CreateAccount() {
-  const [users, setUsers] = useState([]); // Danh sách tài khoản
-  const [loading, setLoading] = useState(false); // Trạng thái loading
-  const [modalVisible, setModalVisible] = useState(false); // Hiển thị modal
-  const [editingUser, setEditingUser] = useState(null); // Người dùng đang chỉnh sửa
-  const [form] = Form.useForm(); // Form Ant Design
+  const [form] = Form.useForm();
+  const [editingUser, setEditingUser] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const user = useSelector(selectUser);
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
-  // Lấy danh sách tài khoản
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/user/get/all");
-      if (res.status === 200) {
-        setUsers(res.data.data);
-      } else {
-        message.error("Không thể tải danh sách tài khoản!");
-      }
+      const response = await api.get("user/get/all");
+      setUsers(response.data.data);
     } catch (error) {
-      message.error("Lỗi kết nối API!");
-      console.error("API Error:", error);
+      message.error("Failed to fetch users");
+      console.error("Error fetching users:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  //  Mở modal thêm/sửa tài khoản
-  const openModal = (user = null) => {
-    setEditingUser(user);
-    form.setFieldsValue(
-      user || {
-        name: "",
-        email: "",
-        username: "",
-        password: "",
-        role: "ADMIN",
-        restaurant_id: "",
-      }
-    );
-    setModalVisible(true);
-  };
-
-  //  Gửi dữ liệu để thêm/sửa tài khoản
-  const handleSubmit = async () => {
+  const handleAddOrEditTable = async (values) => {
     try {
-      const values = await form.validateFields();
+      const payload = {
+        user_id: editingUser ? editingUser.user_id : 0,
+        name: values.name,
+        email: values.email,
+        username: values.username,
+        password: values.password,
+        role: values.role,
+        restaurant_id: user?.restaurantId,
+      };
+
       if (editingUser) {
-        // Sửa tài khoản
-        await api.put(`/user/${editingUser.user_id}`, values);
+        await api.put(`/user/${editingUser.user_id}`, payload);
         message.success("Cập nhật tài khoản thành công!");
+        alert("cập tài khoản thành công ");
       } else {
-        // Thêm tài khoản mới
-        await api.post("/user/create", { ...values, user_id: 0 });
+        await api.post("/user/create", payload);
         message.success("Thêm tài khoản thành công!");
+        alert("thêm tài khoản thành công ");
       }
-      fetchUsers(); // Load lại danh sách
+
       setModalVisible(false);
       form.resetFields();
+      fetchUsers();
     } catch (error) {
-      message.error("Lỗi khi lưu tài khoản!");
-      console.error("API Error:", error);
+      console.error("Lỗi API:", error);
+      message.error(
+        error.response?.data?.message || "Lỗi khi xử lý tài khoản!"
+      );
     }
   };
 
-  //  Xóa tài khoản
-  const handleDelete = async (userId) => {
-    Modal.confirm({
-      title: "Xác nhận xóa",
-      content: "Bạn có chắc chắn muốn xóa tài khoản này không?",
-      onOk: async () => {
-        try {
-          await api.delete(`/user/${userId}`);
-          message.success("Xóa tài khoản thành công!");
-          fetchUsers();
-        } catch (error) {
-          message.error("Lỗi khi xóa tài khoản!");
-          console.error("API Error:", error);
-        }
-      },
-    });
+  const openModal = (acc = null) => {
+    setEditingUser(acc);
+    setModalVisible(true);
+    if (acc) {
+      form.setFieldsValue(acc);
+    } else {
+      form.setFieldsValue({
+        restaurant_id: user?.restaurantId,
+      });
+    }
   };
+  console.log("User từ Redux:", user);
+  console.log("restaurantId:", user?.restaurantId);
+
+  const handleDeleteUsers = async (user_id) => {
+    try {
+      await api.delete(`/user/delete/${user_id}`);
+      message.success("Xóa user thành công!");
+      fetchUsers();
+    } catch (error) {
+      message.error("Lỗi khi xóa useruser");
+    }
+  };
+  const columns = [
+    { title: "ID", dataIndex: "name", key: "name" },
+    { title: "Email", dataIndex: "email", key: "email" },
+    {
+      title: "Hành động",
+      key: "actions",
+      render: (_, record) => (
+        <>
+          <Button
+            onClick={() => openModal(record)}
+            style={{ marginRight: 8 }}
+            type="primary"
+          >
+            Sửa
+          </Button>
+          <Popconfirm
+            title="Bạn có chắc chắn?"
+            onConfirm={() => handleDeleteUsers(record.user_id)}
+          >
+            <Button type="primary" danger>
+              Xóa
+            </Button>
+          </Popconfirm>
+        </>
+      ),
+    },
+  ];
 
   return (
-    <div>
+    <>
       <Button type="primary" onClick={() => openModal()}>
-        + Thêm Tài Khoản
+        Thêm Tài Khoản
       </Button>
-
-      {/* Bảng danh sách tài khoản */}
       <Table
         dataSource={users}
-        rowKey="user_id"
+        columns={columns}
+        rowKey="id"
         loading={loading}
-        style={{ marginTop: 20 }}
-      >
-        <Table.Column title="ID" dataIndex="user_id" key="user_id" />
-        <Table.Column title="Tên" dataIndex="name" key="name" />
-        <Table.Column title="Email" dataIndex="email" key="email" />
-        <Table.Column title="Username" dataIndex="username" key="username" />
-        <Table.Column title="Vai trò" dataIndex="role" key="role" />
-        <Table.Column
-          title="Nhà Hàng"
-          dataIndex="restaurant_name"
-          key="restaurant_name"
-        />
-        <Table.Column
-          title="Hành Động"
-          key="actions"
-          render={(text, record) => (
-            <Space>
-              <Button onClick={() => openModal(record)} type={"primary"}>
-                Sửa
-              </Button>
-              <Button
-                danger
-                onClick={() => handleDelete(record.user_id)}
-                type={"primary"}
-              >
-                Xóa
-              </Button>
-            </Space>
-          )}
-        />
-      </Table>
-
-      {/* Modal Thêm/Sửa Tài Khoản */}
+      />
       <Modal
-        title={editingUser ? "Chỉnh sửa tài khoản" : "Thêm tài khoản"}
+        title={editingUser ? "Sửa bàn ăn" : "Thêm bàn ăn"}
         open={modalVisible}
         onCancel={() => setModalVisible(false)}
-        onOk={handleSubmit}
+        onOk={() => form.submit()}
       >
-        <Form form={form} layout="vertical">
+        <Form form={form} layout="vertical" onFinish={handleAddOrEditTable}>
           <Form.Item
-            label="Tên"
             name="name"
-            rules={[{ required: true, message: "Vui lòng nhập tên!" }]}
+            label="Họ và tên"
+            rules={[{ required: true, message: "Nhập họ và tên!" }]}
           >
             <Input />
           </Form.Item>
           <Form.Item
-            label="Email"
             name="email"
-            rules={[{ required: true, message: "Vui lòng nhập email!" }]}
-          >
-            <Input type="email" />
-          </Form.Item>
-          <Form.Item
-            label="Username"
-            name="username"
-            rules={[{ required: true, message: "Vui lòng nhập username!" }]}
+            label="Email"
+            rules={[{ required: true, message: "Nhập email!" }]}
           >
             <Input />
           </Form.Item>
           <Form.Item
-            label="Mật khẩu"
+            name="username"
+            label="Tên đăng nhập"
+            rules={[{ required: true, message: "Nhập tên đăng nhập!" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
             name="password"
-            rules={[
-              { required: !editingUser, message: "Vui lòng nhập mật khẩu!" },
-            ]}
+            label="Mật khẩu"
+            rules={[{ required: true, message: "Nhập mật khẩu!" }]}
           >
             <Input.Password />
           </Form.Item>
           <Form.Item
-            label="Vai trò"
             name="role"
-            rules={[{ required: true, message: "Vui lòng chọn vai trò!" }]}
+            label="Vai trò"
+            rules={[{ required: true, message: "Chọn vai trò!" }]}
           >
             <Select>
-              <Option value="ADMIN">Admin</Option>
-              <Option value="MANAGER">Manager</Option>
-              <Option value="STAFF">Staff</Option>
+              <Select.Option value="MANAGER">Manager</Select.Option>
+              <Select.Option value="STAFF">Nhân viên</Select.Option>
             </Select>
           </Form.Item>
-          <Form.Item
-            label="ID Nhà Hàng"
-            name="restaurant_id"
-            rules={[{ required: true, message: "Vui lòng nhập ID nhà hàng!" }]}
-          >
-            <Input type="number" />
+          <Form.Item label="Nhà hàng">
+            <Input value={user?.restaurantId} disabled />
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+    </>
   );
 }
 

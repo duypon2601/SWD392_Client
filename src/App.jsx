@@ -17,7 +17,7 @@ import { List } from "antd";
 import Test from "./components/pages/Test/Test";
 import CreateAccount from "./components/pages/CreateAccount/CreateAccount";
 import CreateRestaurant from "./components/pages/CreateRestaurant/CreateRestaurant";
-
+import CreateTable from "./components/pages/CreateTable/CreateTable";
 import Manager from "./components/pages/Manager/Manager";
 import CreateMenu from "./components/pages/CreateMenu/CreateMenu";
 
@@ -100,6 +100,10 @@ function App() {
         {
           path: "/Manager/CreateMenu",
           element: <CreateMenu />,
+        },
+        {
+          path: "/Manager/CreateTable",
+          element: <CreateTable />,
         },
       ],
     },
