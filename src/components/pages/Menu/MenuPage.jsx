@@ -15,7 +15,6 @@ import { ShoppingCartOutlined } from "@ant-design/icons";
 import api from "../../config/axios";
 import "./MenuPage.css";
 import { useNavigate } from "react-router-dom";
-import { Spin } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import { addProduct } from "../../redux/features/cartSlice";
 
@@ -26,25 +25,23 @@ const { Text } = Typography;
 
 function MenuPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [menuData, setMenuData] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [menuData, setMenuData] = useState([]); // Danh sách món ăn
+  const [categories, setCategories] = useState([]); // Danh mục
   const [selectedCategory, setSelectedCategory] = useState(null);
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchMenuData();
     fetchCategories();
   }, []);
 
-  const fetchMenuData = async (categoryId = null) => {
+  // 📌 Lấy danh sách món ăn từ API
+  const fetchMenuData = async () => {
     try {
-      const res = await api.get("/food");
-      if (res.status === 200 && res.data.data) {
-        setMenuData(res.data.data);
-        if (categoryId) {
-          setSelectedCategory(categoryId);
-        }
+      const res = await api.get("menu/restaurant/1");
+      if (res.status === 200 && res.data.data.length > 0) {
+        const menu = res.data.data[0]; // Lấy menu đầu tiên
+        setMenuData(menu.menuItems || []); // Chỉ lấy danh sách món ăn
       } else {
         message.error("Không thể lấy dữ liệu món ăn!");
       }
@@ -54,12 +51,13 @@ function MenuPage() {
     }
   };
 
+  // 📌 Lấy danh sách danh mục từ API
   const fetchCategories = async () => {
     try {
       const res = await api.get("/category");
       if (res.status === 200 && res.data.data) {
         setCategories(res.data.data);
-        setSelectedCategory(res.data.data[0]?.category_id || null); // Chọn danh mục đầu tiên nếu có
+        setSelectedCategory(res.data.data[0]?.name || null); // Chọn danh mục đầu tiên nếu có
       } else {
         message.error("Không thể lấy danh mục!");
       }
@@ -69,28 +67,22 @@ function MenuPage() {
     }
   };
 
-  // Khi nhấn vào tab danh mục, gọi lại API để cập nhật món ăn
-  const handleCategoryClick = (categoryId) => {
-    setSelectedCategory(categoryId);
-    fetchMenuData(categoryId); // Load lại món ăn theo danh mục
+  // 📌 Khi chọn danh mục
+  const handleCategoryClick = (categoryName) => {
+    setSelectedCategory(categoryName);
   };
 
-  // Lọc món ăn theo danh mục và từ khóa tìm kiếm
+  // 📌 Lọc món ăn theo danh mục (categoryName) và từ khóa tìm kiếm
   const filteredMenu = menuData
     .filter(
       (item) =>
-        selectedCategory === null || item.category_id === selectedCategory
+        selectedCategory === null || item.categoryName === selectedCategory
     )
     .filter((item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      item.foodName.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-  // const addToCart = (item) => {
-  //   setCart((prevCart) => [...prevCart, item]);
-  //   message.success(`${item.name} đã thêm vào giỏ hàng!`);
-  // };
-
-  // Điều hướng sang trang giỏ hàng
+  // 📌 Điều hướng sang trang giỏ hàng
   const showCart = () => {
     if (cartcount.length === 0) {
       message.info("Giỏ hàng của bạn đang trống");
@@ -99,16 +91,14 @@ function MenuPage() {
     navigate("/cart");
   };
 
+  // 📌 Thêm món vào giỏ hàng
   const dispatch = useDispatch();
-
-  // Then update your handler
   const handleAddToCart = (item) => {
-    // setCart((prevCart) => [...prevCart, item]);
     dispatch(addProduct(item));
-    message.success(`${item.name} đã thêm vào giỏ hàng!`);
+    message.success(`${item.foodName} đã thêm vào giỏ hàng!`);
   };
 
-  // đếm sanr phẩm khi add vào giỏ hàng
+  // 📌 Đếm sản phẩm trong giỏ hàng
   const cartcount = useSelector((state) => state.cart.items);
 
   return (
@@ -121,7 +111,7 @@ function MenuPage() {
           className="logo"
         />
         <Search
-          placeholder=" Tìm món ăn..."
+          placeholder="Tìm món ăn..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="search-bar"
@@ -130,13 +120,13 @@ function MenuPage() {
 
       {/* Tabs danh mục món ăn */}
       <Tabs
-        activeKey={String(selectedCategory)}
-        onChange={(key) => handleCategoryClick(Number(key))}
+        activeKey={selectedCategory}
+        onChange={(key) => handleCategoryClick(key)}
         centered
         className="menu-tabs"
       >
         {categories.map((category) => (
-          <TabPane tab={category.name} key={String(category.category_id)} />
+          <TabPane tab={category.name} key={category.name} />
         ))}
       </Tabs>
 
@@ -144,20 +134,20 @@ function MenuPage() {
         <Row gutter={[16, 16]}>
           {filteredMenu.length > 0 ? (
             filteredMenu.map((item) => (
-              <Col xs={12} sm={8} md={6} key={item.food_id}>
+              <Col xs={12} sm={8} md={6} key={item.foodId}>
                 <Card className="food-card" hoverable>
                   <img
-                    src={item.image_url}
-                    alt={item.name}
+                    src={item.imageUrl}
+                    alt={item.foodName}
                     className="food-image"
                   />
                   <div className="food-info">
                     <Text strong className="food-name">
-                      {item.name}
+                      {item.foodName}
                     </Text>
                     <div>
                       <Text className="food-description">
-                        {item.description}
+                        Giá: {item.price.toLocaleString()}đ
                       </Text>
                     </div>
                     <Button

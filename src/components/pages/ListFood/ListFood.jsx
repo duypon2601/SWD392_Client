@@ -40,7 +40,6 @@ function ListFood() {
       const response = await api.get("/food");
       if (response.data.statusCode === 200) {
         setDataSource(response.data.data);
-        console.log("res", response.data.data);
       } else {
         message.error(
           response.data.message || "Không thể lấy danh sách món ăn"
