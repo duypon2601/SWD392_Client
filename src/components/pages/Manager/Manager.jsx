@@ -50,6 +50,7 @@ const Manager = () => {
       setItems([
         getItem("CreateRestaurant", "CreateRestaurant", <AppstoreOutlined />),
         getItem("CreateAccount", "CreateAccount", <AppstoreAddOutlined />),
+        getItem("AddMenu", "AddMenu", <AppstoreOutlined />),
         getItem("CreateMenu", "CreateMenu", <AppstoreOutlined />),
         getItem("CreateTable", "CreateTable", <AppstoreOutlined />),
       ]);

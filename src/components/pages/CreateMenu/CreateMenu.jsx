@@ -1,145 +1,134 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  Table,
-  Button,
+  Form,
   InputNumber,
+  Button,
+  Checkbox,
   message,
+  Select,
   Card,
-  Typography,
-  Space,
+  Input,
 } from "antd";
 import api from "../../config/axios";
+import { useSelector } from "react-redux";
+import { selectUser } from "../../redux/features/userSlice";
 
-const { Title } = Typography;
+const { Option } = Select;
 
 const CreateMenu = () => {
-  const [foodList, setFoodList] = useState([]);
-  const [selectedFood, setSelectedFood] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [form] = Form.useForm();
+  const user = useSelector(selectUser);
+  const [foods, setFoods] = useState([]);
 
   useEffect(() => {
-    fetchFoodList();
+    fetchFoods();
   }, []);
 
-  const fetchFoodList = async () => {
+  const fetchFoods = async () => {
     try {
       const response = await api.get("/food");
-      console.log("API response:", response.data.data);
-      setFoodList(Array.isArray(response.data.data) ? response.data.data : []);
+      if (response?.data?.statusCode === 200) {
+        setFoods(response.data.data);
+      } else {
+        message.error("Không thể lấy danh sách món ăn");
+      }
     } catch (error) {
-      message.error("Failed to fetch food list");
-      setFoodList([]);
+      message.error("Lỗi kết nối API khi lấy danh sách món ăn");
+      console.error("Fetch Foods API Error:", error);
     }
   };
 
-  const handlePriceChange = (foodId, value) => {
-    setSelectedFood((prev) => ({
-      ...prev,
-      [foodId]: { ...prev[foodId], price: value || 0 },
-    }));
-  };
-
-  const addToMenu = async (foodId) => {
-    const foodItem = selectedFood[foodId];
-    if (!foodItem || foodItem.quantity <= 0 || foodItem.price <= 0) {
-      message.warning("Please enter valid price and quantity");
-      return;
-    }
-
+  const onFinish = async (values) => {
+    setLoading(true);
     try {
-      await api.post("/menu", {
+      if (!user?.restaurantId) {
+        message.error("Không tìm thấy thông tin nhà hàng");
+        return;
+      }
+
+      if (!values.foodId) {
+        message.error("Vui lòng chọn món ăn!");
+        return;
+      }
+
+      // payload đúng format API yêu cầu
+      const payload = {
+        restaurantId: user.restaurantId,
+        isActive: values.isActive || false,
         foodItems: [
           {
-            foodId,
-            price: foodItem.price,
-            quantity: foodItem.quantity,
+            foodId: values.foodId,
+            price: values.price,
           },
         ],
-      });
-      message.success("Added to menu successfully");
+      };
+
+      console.log("Payload gửi đi:", payload);
+
+      const response = await api.post("/menu", payload);
+      if (response?.status === 200) {
+        message.success("Tạo menu thành công!");
+        alert("Tạo menu thành công!");
+        form.resetFields();
+      } else {
+        message.error("Lỗi khi tạo menu!");
+      }
     } catch (error) {
-      message.error("Failed to add food to menu");
+      message.error(error.response?.data?.message || "Lỗi kết nối API!");
+      console.error("API Error:", error.response?.data || error.message);
+    } finally {
+      setLoading(false);
     }
   };
-
-  const columns = [
-    {
-      title: "Image",
-      dataIndex: "image_url",
-      key: "image_url",
-      render: (url) => (
-        <img
-          src={url || "https://via.placeholder.com/60"}
-          alt="food"
-          width={60}
-          height={60}
-          style={{
-            borderRadius: "8px",
-            boxShadow: "0px 2px 5px rgba(0, 0, 0, 0.2)",
-          }}
-        />
-      ),
-    },
-    {
-      title: "Name",
-      dataIndex: "name",
-      key: "name",
-      render: (text) => <strong style={{ color: "#1890ff" }}>{text}</strong>,
-    },
-    {
-      title: "Description",
-      dataIndex: "description",
-      key: "description",
-      render: (text) => <span style={{ fontStyle: "italic" }}>{text}</span>,
-    },
-    {
-      title: "Price",
-      key: "price",
-      render: (_, record) => (
-        <InputNumber
-          min={0}
-          onChange={(value) => handlePriceChange(record.food_id, value)}
-          placeholder="Enter price"
-          style={{ width: "100%" }}
-        />
-      ),
-    },
-    {
-      title: "Action",
-      key: "action",
-      render: (_, record) => (
-        <Button
-          type="primary"
-          onClick={() => addToMenu(record.food_id)}
-          style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }}
-        >
-          Add to Menu
-        </Button>
-      ),
-    },
-  ];
 
   return (
     <Card
-      style={{
-        padding: "20px",
-        borderRadius: "12px",
-        boxShadow: "0px 4px 15px rgba(0, 0, 0, 0.1)",
-        background: "#f9f9f9",
-      }}
+      title="Tạo Menu Mới"
+      bordered
+      style={{ maxWidth: 500, margin: "auto" }}
     >
-      <Title
-        level={2}
-        style={{ textAlign: "center", marginBottom: "20px", color: "#333" }}
-      >
-        🍽️ Create Menu
-      </Title>
-      <Table
-        dataSource={foodList || []}
-        columns={columns}
-        rowKey="food_id"
-        pagination={{ pageSize: 5 }}
-        bordered
-      />
+      <Form form={form} layout="vertical" onFinish={onFinish}>
+        <Form.Item label="Restaurant Name">
+          <Input value={user?.name || ""} disabled />
+        </Form.Item>
+
+        <Form.Item
+          label="Trạng thái hoạt động"
+          name="isActive"
+          valuePropName="checked"
+        >
+          <Checkbox>Mở</Checkbox>
+        </Form.Item>
+
+        <Form.Item
+          label="Món ăn"
+          name="foodId"
+          rules={[{ required: true, message: "Chọn món ăn" }]}
+        >
+          <Select placeholder="Chọn món ăn">
+            {foods.map((food) => (
+              <Option key={food.foodId} value={food.foodId}>
+                {food.name}
+              </Option>
+            ))}
+          </Select>
+        </Form.Item>
+
+        <Form.Item
+          label="Giá"
+          name="price"
+          rules={[{ required: true, message: "Nhập giá món ăn" }]}
+        >
+          <InputNumber style={{ width: "100%" }} min={0} />
+        </Form.Item>
+
+        <Form.Item>
+          <Button type="primary" htmlType="submit" loading={loading} block>
+            Tạo Menu
+          </Button>
+        </Form.Item>
+      </Form>
     </Card>
   );
 };
