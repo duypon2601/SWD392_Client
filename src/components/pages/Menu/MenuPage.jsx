@@ -17,6 +17,7 @@ import "./MenuPage.css";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { addProduct } from "../../redux/features/cartSlice";
+import { selectUser } from "../../redux/features/userSlice";
 
 const { Search } = Input;
 const { Content, Header } = Layout;
@@ -29,19 +30,20 @@ function MenuPage() {
   const [categories, setCategories] = useState([]); // Danh mục
   const [selectedCategory, setSelectedCategory] = useState(null);
   const navigate = useNavigate();
+  const user = useSelector(selectUser);
 
   useEffect(() => {
     fetchMenuData();
     fetchCategories();
   }, []);
 
-  // 📌 Lấy danh sách món ăn từ API
+  //  Lấy danh sách món ăn từ API
   const fetchMenuData = async () => {
     try {
-      const res = await api.get("menu/restaurant/1");
+      const res = await api.get(`menu/restaurant/${user.restaurantId}`);
       if (res.status === 200 && res.data.data.length > 0) {
         const menu = res.data.data[0]; // Lấy menu đầu tiên
-        setMenuData(menu.menuItems || []); // Chỉ lấy danh sách món ăn
+        setMenuData(menu.menuItems || []);
       } else {
         message.error("Không thể lấy dữ liệu món ăn!");
       }
@@ -51,7 +53,7 @@ function MenuPage() {
     }
   };
 
-  // 📌 Lấy danh sách danh mục từ API
+  //  Lấy danh sách danh mục từ API
   const fetchCategories = async () => {
     try {
       const res = await api.get("/category");
@@ -67,12 +69,12 @@ function MenuPage() {
     }
   };
 
-  // 📌 Khi chọn danh mục
+  //  Khi chọn danh mục
   const handleCategoryClick = (categoryName) => {
     setSelectedCategory(categoryName);
   };
 
-  // 📌 Lọc món ăn theo danh mục (categoryName) và từ khóa tìm kiếm
+  //  Lọc món ăn theo danh mục (categoryName) và từ khóa tìm kiếm
   const filteredMenu = menuData
     .filter(
       (item) =>
@@ -82,7 +84,7 @@ function MenuPage() {
       item.foodName.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-  // 📌 Điều hướng sang trang giỏ hàng
+  //  Điều hướng sang trang giỏ hàng
   const showCart = () => {
     if (cartcount.length === 0) {
       message.info("Giỏ hàng của bạn đang trống");
@@ -91,14 +93,14 @@ function MenuPage() {
     navigate("/cart");
   };
 
-  // 📌 Thêm món vào giỏ hàng
+  //  Thêm món vào giỏ hàng
   const dispatch = useDispatch();
   const handleAddToCart = (item) => {
     dispatch(addProduct(item));
     message.success(`${item.foodName} đã thêm vào giỏ hàng!`);
   };
 
-  // 📌 Đếm sản phẩm trong giỏ hàng
+  // Đếm sản phẩm trong giỏ hàng
   const cartcount = useSelector((state) => state.cart.items);
 
   return (

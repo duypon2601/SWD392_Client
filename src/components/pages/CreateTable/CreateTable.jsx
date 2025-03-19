@@ -31,10 +31,10 @@ function CreateTable() {
   const fetchTables = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/dining_table");
+      const res = await api.get(`dining_table/restaurant/${user.restaurantId}`);
       if (res.status === 200) {
         setTables(res.data.data);
-        console.log("bàn:", user.name);
+        console.log("bàndddddddddddd:", res.data.data);
       } else {
         message.error("Không thể lấy danh sách bàn ăn!");
       }
@@ -47,11 +47,10 @@ function CreateTable() {
 
   const handleAddOrEditTable = async (values) => {
     try {
-        const payload = {
-            qrCode: values.qrCode,
-            status: values.status,
-            restaurantId: user?.restaurantId,
-          };
+      const payload = {
+        status: values.status,
+        restaurantId: user?.restaurantId,
+      };
       if (editingTable) {
         await api.put(`/dining_table/${editingTable.id}`, values);
         message.success("Cập nhật bàn ăn thành công!");
@@ -100,14 +99,20 @@ function CreateTable() {
       key: "actions",
       render: (_, record) => (
         <>
-          <Button onClick={() => openModal(record)} style={{ marginRight: 8 }} type="primary">
+          <Button
+            onClick={() => openModal(record)}
+            style={{ marginRight: 8 }}
+            type="primary"
+          >
             Sửa
           </Button>
           <Popconfirm
             title="Bạn có chắc chắn?"
             onConfirm={() => handleDeleteTable(record.id)}
           >
-            <Button danger type="primary">Xóa</Button >
+            <Button danger type="primary">
+              Xóa
+            </Button>
           </Popconfirm>
         </>
       ),
@@ -133,13 +138,13 @@ function CreateTable() {
         onOk={() => form.submit()}
       >
         <Form form={form} layout="vertical" onFinish={handleAddOrEditTable}>
-          <Form.Item
+          {/* <Form.Item
             name="qrCode"
             label="QR Code"
             rules={[{ required: true, message: "Nhập QR Code!" }]}
           >
             <Input />
-          </Form.Item>
+          </Form.Item> */}
 
           <Form.Item
             name="status"
