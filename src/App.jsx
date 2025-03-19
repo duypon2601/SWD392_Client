@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { ToastContainer } from "react-toastify";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import { useSelector } from 'react-redux'; // Thêm nếu cần kiểm tra state
+import Notification from './components/Notification/Notification';
 import MenuPage from "./components/pages/Menu/MenuPage";
 import CartPage from "./components/pages/CartPage/CartPage";
 import LoginPage from "./components/pages/login/LoginPage"; // Thêm import
@@ -21,7 +23,7 @@ import CreateTable from "./components/pages/CreateTable/CreateTable";
 import Manager from "./components/pages/Manager/Manager";
 import AddMenu from "./components/pages/AddMenu/AddMenu";
 import CreateMenu from "./components/pages/CreateMenu/CreateMenu";
-
+import 'react-toastify/dist/ReactToastify.css';
 function App() {
   const [count, setCount] = useState(0);
 
@@ -117,6 +119,7 @@ function App() {
   return (
     <>
       <ToastContainer />
+      <Notification /> {/* Thêm component thông báo */}
       <RouterProvider router={router} />
     </>
   );
