@@ -59,10 +59,12 @@ const Manager = () => {
 
   useEffect(() => {
     const currentURI = location.pathname.split("/").pop();
-    if (currentURI === "manager") {
-      navigate("/Manager/CreateRestaurant");
+    // Nếu đường dẫn là "/manager", chuyển hướng đến "/manager/AddMenu"
+    if (currentURI === "manager" || location.pathname === "/manager") {
+      navigate("/manager/AddMenu");
+    } else {
+      setOpenKeys((prevKeys) => [...prevKeys, currentURI]);
     }
-    setOpenKeys((prevKeys) => [...prevKeys, currentURI]);
   }, [location.pathname, navigate]);
 
   useEffect(() => {

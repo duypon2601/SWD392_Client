@@ -90,6 +90,11 @@ function App() {
       path: "/Manager",
       element: <Manager />,
       children: [
+        { index: true, element: <CreateAccount /> },
+        {
+          path: "/Manager/AddMenu",
+          element: <AddMenu />,
+        },
         {
           path: "/Manager/CreateAccount",
           element: <CreateAccount />,
@@ -98,10 +103,7 @@ function App() {
           path: "/Manager/CreateRestaurant",
           element: <CreateRestaurant />,
         },
-        {
-          path: "/Manager/AddMenu",
-          element: <AddMenu />,
-        },
+
         {
           path: "/Manager/CreateTable",
           element: <CreateTable />,
