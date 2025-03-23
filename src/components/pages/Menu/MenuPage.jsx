@@ -10,8 +10,14 @@ import {
   Tabs,
   Typography,
   FloatButton,
+  Modal,
+  InputNumber,
 } from "antd";
-import { ShoppingCartOutlined } from "@ant-design/icons";
+import {
+  ShoppingCartOutlined,
+  MinusOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
 import api from "../../config/axios";
 import "./MenuPage.css";
 import { useNavigate } from "react-router-dom";
@@ -29,8 +35,12 @@ function MenuPage() {
   const [menuData, setMenuData] = useState([]); // Danh sách món ăn
   const [categories, setCategories] = useState([]); // Danh mục
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [selectedItem, setSelectedItem] = useState(null);
   const navigate = useNavigate();
   const user = useSelector(selectUser);
+  const [orderLoading, setOrderLoading] = useState(false); // load món ăn 
 
   useEffect(() => {
     fetchMenuData();
@@ -93,11 +103,68 @@ function MenuPage() {
     navigate("/cart");
   };
 
-  //  Thêm món vào giỏ hàng
+  // Mở modal khi nhấn vào nút "Thêm vào giỏ"
+  const showQuantityModal = (item) => {
+    setSelectedItem(item);
+    setQuantity(1);
+    setModalVisible(true);
+    console.log(item);
+  };
+
+  // Tăng số lượng
+  const increaseQuantity = () => {
+    setQuantity((prev) => prev + 1);
+  };
+
+  // Giảm số lượng
+  const decreaseQuantity = () => {
+    if (quantity > 1) {
+      setQuantity((prev) => prev - 1);
+    }
+  };
+
+  // Đóng modal
+  const handleCancel = () => {
+    setModalVisible(false);
+    setSelectedItem(null);
+  };
+
+  // Dispatch để thêm vào giỏ hàng
   const dispatch = useDispatch();
-  const handleAddToCart = (item) => {
-    dispatch(addProduct(item));
-    message.success(`${item.foodName} đã thêm vào giỏ hàng!`);
+
+  // Hàm thêm món vào giỏ hàng
+  const handleAddToCart = async () => {
+    if (!selectedItem) return;
+
+    try {
+      setOrderLoading(true);
+      const tableQr = "qrtable_5c9d5036-b874-49ee-8ad0-7fd2a074c353.png";
+      const response = await api.post(`/cart/${tableQr}/add`, null, {
+        params: {
+          menuItemId: selectedItem.foodId,
+          quantity: quantity,
+        },
+      });
+
+      if (response.status === 200) {
+        // Thêm sản phẩm vào Redux với số lượng đã chọn
+        const itemWithQuantity = {
+          ...selectedItem,
+          quantity: quantity,
+        };
+        dispatch(addProduct(itemWithQuantity));
+        message.success(
+          `${quantity} ${selectedItem.foodName} đã thêm vào giỏ hàng!`
+        );
+        setModalVisible(false);
+      } else {
+        message.error("Không thể thêm món ăn vào giỏ hàng!");
+      }
+    } catch (error) {
+      message.error("Lỗi khi thêm món ăn!");
+      console.error("API Error:", error);
+    }
+    setOrderLoading(false);
   };
 
   // Đếm sản phẩm trong giỏ hàng
@@ -153,8 +220,9 @@ function MenuPage() {
                       </Text>
                     </div>
                     <Button
+                      type="primary"
                       className="add-to-cart-btn"
-                      onClick={() => handleAddToCart(item)}
+                      onClick={() => showQuantityModal(item)}
                     >
                       Thêm vào giỏ
                     </Button>
@@ -169,6 +237,60 @@ function MenuPage() {
           )}
         </Row>
       </Content>
+
+      {/* Modal chọn số lượng */}
+      <Modal
+        title={selectedItem?.foodName}
+        open={modalVisible}
+        onCancel={handleCancel}
+        footer={[
+          // <Button key="cancel" onClick={handleCancel}>
+          //   Hủy
+          // </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            block
+            // className="checkout-button"
+            className="add-to-cart-btn"
+            loading={orderLoading}
+            onClick={handleAddToCart}
+          >
+            Thêm vào giỏ
+          </Button>,
+        ]}
+      >
+        {selectedItem && (
+          <div className="quantity-selector">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "20px 0",
+              }}
+            >
+              <Button
+                icon={<MinusOutlined />}
+                onClick={decreaseQuantity}
+                disabled={quantity <= 1}
+              />
+              <InputNumber
+                min={1}
+                value={quantity}
+                onChange={(value) => setQuantity(value)}
+                style={{ margin: "0 10px", width: "60px", textAlign: "center" }}
+              />
+              <Button icon={<PlusOutlined />} onClick={increaseQuantity} />
+            </div>
+            <div style={{ textAlign: "center", margin: "10px 0" }}>
+              <Text>
+                Tổng: {(selectedItem.price * quantity).toLocaleString()}đ
+              </Text>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Nút giỏ hàng nổi */}
       <FloatButton

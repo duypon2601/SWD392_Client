@@ -28,6 +28,8 @@ function LoginPage() {
         navigate("/dashboard");
       } else if (user.role === "MANAGER") {
         navigate("/Manager");
+      } else if (user.role === "STAFF") {
+        navigate("/TableManagement");
       } else {
         navigate("/login");
       }

@@ -12,7 +12,7 @@ import DashBoard from "./components/pages/dashboard/dashboard";
 import Category from "./components/pages/Category/category";
 import ListFood from "./components/pages/ListFood/ListFood";
 import Categori from "./components/pages/Categori/Categori";
-import CafeManagement from "./components/pages/CafeManagement/CafeManagement";
+import TableManagement from "./components/pages/TableManagement/TableManagement";
 import { List } from "antd";
 import Test from "./components/pages/Test/Test";
 import CreateAccount from "./components/pages/CreateAccount/CreateAccount";
@@ -47,8 +47,8 @@ function App() {
       element: <Test />,
     },
     {
-      path: "CafeManagement",
-      element: <CafeManagement />,
+      path: "TableManagement",
+      element: <TableManagement />,
     },
     {
       path: "/CreateRestaurant",
