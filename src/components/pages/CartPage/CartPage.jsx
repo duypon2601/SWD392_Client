@@ -35,12 +35,12 @@ function CartPage() {
   const [loading, setLoading] = useState(true);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const navigate = useNavigate();
-  const tableQr = "	qrtable_5c9d5036-b874-49ee-8ad0-7fd2a074c353.png";
+  const tableQr = "qrtable_22813b59-263a-4275-b7a3-b8853f868da2.png";
 
   useEffect(() => {
     fetchCartItems();
   }, []);
-
+  
   // Lấy danh sách giỏ hàng từ API
   const fetchCartItems = async () => {
     try {
