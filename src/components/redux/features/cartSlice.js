@@ -1,29 +1,25 @@
+// src/components/redux/features/cartSlice.js
 import { createSlice } from "@reduxjs/toolkit";
 
 const cartSlice = createSlice({
   name: "cart",
   initialState: {
-    items: []  // Đặt mảng của bạn trong một đối tượng
+    items: [],
   },
   reducers: {
     addProduct: (state, action) => {
-      // kiểm tra sản phẩm có trong mảng redux của mình chưa
-      const product = action.payload;
-      const existingProduct = state.items.find((item) => item.food_id === product.food_id);
-
-      // trường hợp nếu có thì tăng quantity lên 
-      if (existingProduct) {
-        existingProduct.quantity += 1;
+      const newItem = action.payload;
+      const existingItem = state.items.find(
+        (item) => item.foodId === newItem.foodId
+      );
+      if (existingItem) {
+        existingItem.quantity += newItem.quantity;
       } else {
-        // trường hợp không có thì thêm vào mảng và thêm quantity
-        state.items.push({ ...product, quantity: 1 });
+        state.items.push(newItem);
       }
     },
-    clearAll: (state) => {
-      state.items = [];
-    },
-  }
+  },
 });
 
-export const { addProduct, clearAll } = cartSlice.actions;
+export const { addProduct } = cartSlice.actions;
 export default cartSlice.reducer;
