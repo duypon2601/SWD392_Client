@@ -20,6 +20,7 @@ import {
   DollarOutlined,
   UserOutlined,
   LogoutOutlined,
+  CheckOutlined,
 } from "@ant-design/icons";
 import "./CafeManagement.css";
 import api from "../../config/axios";
@@ -37,6 +38,10 @@ const TableManagement = () => {
   const user = useSelector(selectUser);
   const navigate = useNavigate();
   const [orderLoading, setOrderLoading] = useState(false);
+  const [subOrders, setSubOrders] = useState([]);
+  const [menuItems, setMenuItems] = useState([]);
+  const [subOrderLoading, setSubOrderLoading] = useState(false);
+  const [pendingItemsByTable, setPendingItemsByTable] = useState({});
 
   const handleLogout = () => {
     setOrderLoading(true);
@@ -46,7 +51,6 @@ const TableManagement = () => {
     setOrderLoading(false);
   };
 
-  // Hàm chuyển đổi status từ API sang tiếng Việt
   const getStatusText = (status) => {
     switch (status) {
       case "AVAILABLE":
@@ -60,11 +64,19 @@ const TableManagement = () => {
     }
   };
 
-  // Gọi API để lấy danh sách bàn với endpoint mới
+  const getPendingItemsCount = (subOrders) => {
+    let count = 0;
+    subOrders.forEach((subOrder) => {
+      if (subOrder.status === "PENDING") {
+        count += subOrder.subOrderItems.length;
+      }
+    });
+    return count;
+  };
+
   const fetchTableList = async () => {
     setLoading(true);
     try {
-      // Sử dụng endpoint mới
       const res = await api.get(
         `/dining_table/restaurant/${user.restaurantId}`
       );
@@ -76,10 +88,11 @@ const TableManagement = () => {
           rawStatus: table.status,
         }));
         setTableList(formattedTables);
-
-        // Set bàn đầu tiên là mặc định nếu có
+        formattedTables.forEach((table) => fetchSubOrders(table.id, false));
         if (formattedTables.length > 0 && !selectedTable) {
           setSelectedTable(formattedTables[0]);
+          fetchSubOrders(formattedTables[0].id, true);
+          fetchMenuItems(formattedTables[0].id);
         }
       } else {
         message.error("Không thể tải danh sách bàn!");
@@ -91,30 +104,243 @@ const TableManagement = () => {
     }
   };
 
-  // Gọi API khi component mount
+  const fetchMenuItems = async (diningTableId) => {
+    try {
+      const res = await api.get(`/order/dining-table/${diningTableId}`);
+      if (res.status === 200 && res.data.data && res.data.data.orderItems) {
+        setMenuItems(res.data.data.orderItems);
+      } else {
+        setMenuItems([]);
+      }
+    } catch (error) {
+      console.error("Lỗi khi tải danh sách món ăn:", error);
+      setMenuItems([]);
+    }
+  };
+
+  const fetchSubOrders = async (diningTableId, setForSelected = false) => {
+    try {
+      const res = await api.get(`/order/dining-table/${diningTableId}`);
+      if (res.status === 200 && res.data.data) {
+        const orderId = res.data.data.id;
+        const subOrderRes = await api.get(`/sub_order/order/${orderId}`);
+
+        if (subOrderRes.status === 200 && subOrderRes.data.data) {
+          const subOrdersData = subOrderRes.data.data;
+          if (setForSelected) {
+            setSubOrders(subOrdersData);
+            setSubOrderLoading(false);
+          }
+          const pendingCount = getPendingItemsCount(subOrdersData);
+          setPendingItemsByTable((prev) => ({
+            ...prev,
+            [diningTableId]: pendingCount,
+          }));
+        } else if (
+          res.data.data.orderItems &&
+          res.data.data.orderItems.length > 0
+        ) {
+          const orderItemsAsSubOrders = [
+            {
+              id: orderId,
+              orderId: orderId,
+              status: res.data.data.status,
+              totalPrice: res.data.data.totalPrice,
+              subOrderItems: res.data.data.orderItems,
+            },
+          ];
+          if (setForSelected) {
+            setSubOrders(orderItemsAsSubOrders);
+            setSubOrderLoading(false);
+          }
+          const pendingCount = getPendingItemsCount(orderItemsAsSubOrders);
+          setPendingItemsByTable((prev) => ({
+            ...prev,
+            [diningTableId]: pendingCount,
+          }));
+        } else {
+          if (setForSelected) {
+            setSubOrders([]);
+            setSubOrderLoading(false);
+          }
+          setPendingItemsByTable((prev) => ({ ...prev, [diningTableId]: 0 }));
+        }
+      } else {
+        if (setForSelected) {
+          setSubOrders([]);
+          setSubOrderLoading(false);
+        }
+        setPendingItemsByTable((prev) => ({ ...prev, [diningTableId]: 0 }));
+      }
+    } catch (error) {
+      if (setForSelected) {
+        setSubOrders([]);
+        setSubOrderLoading(false);
+      }
+      setPendingItemsByTable((prev) => ({ ...prev, [diningTableId]: 0 }));
+      console.error("Lỗi khi tải subOrders:", error);
+    }
+  };
+
+  const completeSubOrder = async (subOrderId) => {
+    try {
+      const res = await api.put(`/sub_order/${subOrderId}/complete`);
+      if (res.status === 200) {
+        message.success("Xác nhận đơn hàng thành công!");
+        fetchSubOrders(selectedTable.id, true);
+        fetchMenuItems(selectedTable.id);
+      } else {
+        message.error("Không thể xác nhận đơn hàng!");
+      }
+    } catch (error) {
+      message.error("Lỗi khi xác nhận đơn hàng: " + error.message);
+    }
+  };
+
+  const handlePayment = async () => {
+    if (!selectedTable) {
+      message.error("Vui lòng chọn bàn trước khi thanh toán!");
+      return;
+    }
+
+    try {
+      setOrderLoading(true);
+
+      // Lấy orderId từ API
+      const orderRes = await api.get(`/order/dining-table/${selectedTable.id}`);
+      if (!orderRes.data.data || !orderRes.data.data.id) {
+        message.error("Không tìm thấy đơn hàng cho bàn này!");
+        return;
+      }
+      const orderId = orderRes.data.data.id;
+
+      // Gọi API complete order
+      const completeRes = await api.put(`/order/${orderId}/complete`);
+
+      if (completeRes.status === 200) {
+        message.success("Thanh toán thành công!");
+        // Cập nhật lại danh sách bàn và dữ liệu
+        await fetchTableList();
+        if (selectedTable) {
+          await fetchSubOrders(selectedTable.id, true);
+          await fetchMenuItems(selectedTable.id);
+        }
+      } else {
+        message.error("Thanh toán thất bại!");
+      }
+    } catch (error) {
+      message.error("Lỗi khi thanh toán: " + error.message);
+    } finally {
+      setOrderLoading(false);
+    }
+  };
+
+  const handleVNPay = async () => {
+    if (!selectedTable) {
+      message.error("Vui lòng chọn bàn trước khi thanh toán!");
+      return;
+    }
+
+    try {
+      setOrderLoading(true);
+
+      // Lấy orderId và kiểm tra dữ liệu
+      const orderRes = await api.get(`/order/dining-table/${selectedTable.id}`);
+      console.log("Order Response:", orderRes.data); // Log để kiểm tra
+      if (!orderRes.data.data || !orderRes.data.data.id) {
+        message.error("Không tìm thấy đơn hàng cho bàn này!");
+        return;
+      }
+      const orderId = orderRes.data.data.id;
+
+      // Log dữ liệu trước khi gửi
+      console.log("Total Amount:", totalAmount);
+      console.log("Order ID:", orderId);
+
+      const paymentData = {
+        amount: totalAmount,
+        orderId: orderId,
+      };
+
+      // Gọi 2 API cùng lúc
+      const [createRes, callbackRes] = await Promise.all([
+        api.post("/payment/create", paymentData),
+        api.post("/payment/callback", paymentData),
+      ]);
+
+      // Log kết quả từ API
+      console.log("Create Payment Response:", createRes.data);
+      // chuyển ssang trang vnpay
+      window.open(createRes.data);
+      console.log("Callback Response:", callbackRes.data);
+
+      // Xử lý kết quả từ /payment/create
+      if (createRes.status === 200 && createRes.data) {
+        let paymentUrl = createRes.data;
+        // Nếu API trả về JSON với key "url" hoặc tương tự
+        if (typeof createRes.data === "object" && createRes.data.url) {
+          paymentUrl = createRes.data.url;
+        }
+        if (typeof paymentUrl === "string" && paymentUrl.startsWith("http")) {
+          window.location.href = paymentUrl; // Chuyển hướng
+          message.success("Đang chuyển hướng đến VNPay...");
+        } else {
+          message.error("URL thanh toán không hợp lệ!");
+        }
+      } else {
+        message.error("Tạo link thanh toán VNPay thất bại!");
+      }
+
+      // Kiểm tra callback (chỉ log, không ảnh hưởng đến flow chính)
+      if (callbackRes.status === 200) {
+        console.log("Callback lưu dữ liệu thành công:", callbackRes.data);
+      } else {
+        message.warning("Callback thất bại nhưng không ảnh hưởng thanh toán!");
+      }
+    } catch (error) {
+      console.error("Lỗi khi xử lý VNPay:", error);
+      message.error(
+        "Lỗi thanh toán VNPay: " +
+          (error.response?.data?.message || error.message)
+      );
+    } finally {
+      setOrderLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchTableList();
-  }, []);
 
-  // Danh sách món ăn (Giả định)
-  const orderList = [
-    {
-      key: 1,
-      name: "Cơm chiên hải sản",
-      quantity: 2,
-      price: 35000,
-      total: 70000,
-    },
-    {
-      key: 2,
-      name: "Trà sữa trân châu",
-      quantity: 1,
-      price: 25000,
-      total: 25000,
-    },
-    { key: 3, name: "Nước cam tươi", quantity: 3, price: 20000, total: 60000 },
-    { key: 4, name: "Bánh flan", quantity: 2, price: 15000, total: 30000 },
-  ];
+    const interval = setInterval(() => {
+      fetchTableList();
+      if (selectedTable) {
+        fetchSubOrders(selectedTable.id, true);
+        fetchMenuItems(selectedTable.id);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [selectedTable]);
+
+  const processSubOrderItems = () => {
+    const allItems = [];
+    subOrders.forEach((subOrder) => {
+      subOrder.subOrderItems.forEach((item) => {
+        allItems.push({
+          key: item.id,
+          name: item.menuItemName || `Menu Item ID: ${item.menuItemId}`,
+          quantity: item.quantity,
+          price: item.price / item.quantity,
+          total: item.price,
+          status: subOrder.status,
+          subOrderId: subOrder.id,
+        });
+      });
+    });
+    return allItems;
+  };
+
+  const orderList = processSubOrderItems();
 
   const columns = [
     {
@@ -146,18 +372,51 @@ const TableManagement = () => {
       width: 120,
       render: (total) => <Text strong>{total.toLocaleString()}đ</Text>,
     },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      align: "center",
+      width: 120,
+      render: (status) => {
+        let color = "default";
+        if (status === "PENDING") color = "warning";
+        if (status === "COMPLETED") color = "success";
+        if (status === "CANCELLED") color = "error";
+        if (status === "CONFIRMED") color = "processing";
+        return <Badge status={color} text={status} />;
+      },
+    },
+    {
+      title: "Hành động",
+      key: "action",
+      align: "center",
+      width: 120,
+      render: (_, record) =>
+        record.status === "PENDING" ? (
+          <Button
+            type="primary"
+            icon={<CheckOutlined />}
+            onClick={() => completeSubOrder(record.subOrderId)}
+          >
+            Xác nhận
+          </Button>
+        ) : null,
+    },
   ];
 
-  // Tính tổng tiền
-  const totalAmount = orderList.reduce((sum, item) => sum + item.total, 0);
+  const totalAmount =
+    subOrders.length > 0
+      ? subOrders.reduce((sum, subOrder) => sum + subOrder.totalPrice, 0)
+      : menuItems.reduce((sum, item) => sum + item.price, 0);
 
-  // Hàm xử lý chọn bàn
   const handleTableSelect = (table) => {
     setSelectedTable(table);
     message.info(`Đã chọn ${table.name}`);
+    fetchSubOrders(table.id, true);
+    fetchMenuItems(table.id);
   };
 
-  // Render badge status cho từng trạng thái
   const renderStatusBadge = (status) => {
     switch (status) {
       case "AVAILABLE":
@@ -173,7 +432,6 @@ const TableManagement = () => {
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      {/* Sidebar Danh Sách Bàn */}
       <Sider
         width={250}
         theme="light"
@@ -194,7 +452,6 @@ const TableManagement = () => {
             color: "white",
           }}
         >
-          {/* <CoffeeOutlined style={{ fontSize: 24, marginRight: 8 }} /> */}
           <Title
             level={4}
             style={{ margin: 0, color: "white", display: "inline" }}
@@ -202,12 +459,10 @@ const TableManagement = () => {
             Moon HotPot
           </Title>
         </div>
-
         <div style={{ padding: "16px 8px" }}>
           <Title level={5} style={{ marginBottom: 16, textAlign: "center" }}>
             Danh Sách Bàn
           </Title>
-
           {loading ? (
             <div style={{ textAlign: "center", padding: "40px 0" }}>
               <Spin tip="Đang tải..." />
@@ -242,6 +497,7 @@ const TableManagement = () => {
                         : table.rawStatus === "OCCUPIED"
                         ? "#fff1f0"
                         : "#fffbe6",
+                    position: "relative",
                   }}
                   hoverable
                   onClick={() => handleTableSelect(table)}
@@ -250,15 +506,25 @@ const TableManagement = () => {
                   <div style={{ marginTop: 5 }}>
                     {renderStatusBadge(table.rawStatus)}
                   </div>
+                  {pendingItemsByTable[table.id] > 0 && (
+                    <Badge
+                      count={pendingItemsByTable[table.id]}
+                      style={{
+                        backgroundColor: "#f5222d",
+                        position: "absolute",
+                        top: 5,
+                        right: 5,
+                        fontSize: 10,
+                      }}
+                    />
+                  )}
                 </Card>
               ))}
             </div>
           )}
         </div>
       </Sider>
-
       <Layout>
-        {/* Header */}
         <Header
           style={{
             background: "white",
@@ -291,8 +557,6 @@ const TableManagement = () => {
             </Button>
           </Popconfirm>
         </Header>
-
-        {/* Nội dung chính */}
         <Content style={{ padding: "24px", background: "#f5f5f5" }}>
           <Row gutter={[24, 24]}>
             <Col xs={24} lg={16}>
@@ -306,11 +570,60 @@ const TableManagement = () => {
                 className="order-details-card"
                 bordered={false}
                 style={{ borderRadius: 8, height: "100%" }}
+                extra={subOrderLoading ? <Spin size="small" /> : null}
               >
+                {selectedTable && (
+                  <div style={{ marginBottom: 24 }}>
+                    <Title level={5} style={{ marginBottom: 12 }}>
+                      Danh sách món ăn
+                    </Title>
+                    {menuItems.length > 0 ? (
+                      <div
+                        style={{
+                          background: "#fafafa",
+                          padding: "12px",
+                          borderRadius: "4px",
+                          border: "1px solid #f0f0f0",
+                        }}
+                      >
+                        {menuItems.map((item, index) => (
+                          <div
+                            key={item.id}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              marginBottom: 8,
+                              paddingBottom: 8,
+                              borderBottom:
+                                index !== menuItems.length - 1
+                                  ? "1px dashed #e8e8e8"
+                                  : "none",
+                            }}
+                          >
+                            <Text>{item.menuItemName}</Text>
+                            <div>
+                              <Text style={{ marginRight: 16 }}>
+                                x{item.quantity}
+                              </Text>
+                              <Text strong>{item.price.toLocaleString()}đ</Text>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <Empty
+                        description="Chưa có món ăn nào"
+                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      />
+                    )}
+                  </div>
+                )}
+                <Divider />
                 <Table
                   columns={columns}
                   dataSource={orderList}
                   pagination={false}
+                  loading={subOrderLoading}
                   locale={{ emptyText: "Chưa có món ăn nào được chọn" }}
                   rowClassName="order-table-row"
                   style={{ marginBottom: 24 }}
@@ -331,13 +644,13 @@ const TableManagement = () => {
                             {totalAmount.toLocaleString()}đ
                           </Text>
                         </Table.Summary.Cell>
+                        <Table.Summary.Cell></Table.Summary.Cell>
                       </Table.Summary.Row>
                     </Table.Summary>
                   )}
                 />
               </Card>
             </Col>
-
             <Col xs={24} lg={8}>
               <Card
                 title={
@@ -372,9 +685,7 @@ const TableManagement = () => {
                     <Text>0đ</Text>
                   </div>
                 </div>
-
                 <Divider style={{ margin: "12px 0" }} />
-
                 <div
                   style={{
                     display: "flex",
@@ -387,16 +698,39 @@ const TableManagement = () => {
                     {totalAmount.toLocaleString()}đ
                   </Text>
                 </div>
-
                 <Button
                   type="primary"
                   size="large"
                   block
                   icon={<DollarOutlined />}
-                  disabled={orderList.length === 0 || !selectedTable}
+                  disabled={
+                    (menuItems.length === 0 && orderList.length === 0) ||
+                    !selectedTable
+                  }
                   style={{ height: "46px", fontSize: "16px" }}
+                  onClick={handlePayment} // Thêm sự kiện onClick
+                  loading={orderLoading} // Thêm trạng thái loading
                 >
                   Thanh Toán
+                </Button>
+                <Button
+                  type="primary"
+                  size="large"
+                  block
+                  icon={<DollarOutlined />}
+                  disabled={
+                    (menuItems.length === 0 && orderList.length === 0) ||
+                    !selectedTable
+                  }
+                  style={{
+                    height: "46px",
+                    fontSize: "16px",
+                    marginTop: "10px",
+                  }}
+                  onClick={handleVNPay}
+                  loading={orderLoading}
+                >
+                  VNPay
                 </Button>
               </Card>
             </Col>

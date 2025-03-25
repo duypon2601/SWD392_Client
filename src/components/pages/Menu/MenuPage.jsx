@@ -40,7 +40,8 @@ function MenuPage() {
   const [selectedItem, setSelectedItem] = useState(null);
   const navigate = useNavigate();
   const user = useSelector(selectUser);
-  const [orderLoading, setOrderLoading] = useState(false); // load món ăn 
+  const [orderLoading, setOrderLoading] = useState(false); // load món ăn
+  const tableQr = "qrtable_22813b59-263a-4275-b7a3-b8853f868da2.png";
 
   useEffect(() => {
     fetchMenuData();
@@ -138,7 +139,7 @@ function MenuPage() {
 
     try {
       setOrderLoading(true);
-      const tableQr = "qrtable_5c9d5036-b874-49ee-8ad0-7fd2a074c353.png";
+
       const response = await api.post(`/cart/${tableQr}/add`, null, {
         params: {
           menuItemId: selectedItem.foodId,

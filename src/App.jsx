@@ -21,6 +21,7 @@ import CreateTable from "./components/pages/CreateTable/CreateTable";
 import Manager from "./components/pages/Manager/Manager";
 import AddMenu from "./components/pages/AddMenu/AddMenu";
 import CreateMenu from "./components/pages/CreateMenu/CreateMenu";
+import PaySuccess from "./components/pages/PaySuccess/PaySuccess";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -53,6 +54,10 @@ function App() {
     {
       path: "/CreateRestaurant",
       element: <CreateRestaurant />,
+    },
+    {
+      path: "/paysuccess/:orderId",
+      element: <PaySuccess />,
     },
 
     {
