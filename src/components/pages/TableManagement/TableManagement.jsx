@@ -265,7 +265,7 @@ const TableManagement = () => {
       // Gọi 2 API cùng lúc
       const [createRes, callbackRes] = await Promise.all([
         api.post("/payment/create", paymentData),
-        api.post("/payment/callback", paymentData),
+        // api.post("/payment/callback", paymentData),
       ]);
 
       // Log kết quả từ API

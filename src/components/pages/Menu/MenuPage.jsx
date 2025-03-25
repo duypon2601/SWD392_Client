@@ -21,8 +21,7 @@ import {
 import api from "../../config/axios";
 import "./MenuPage.css";
 import { useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import { addProduct } from "../../redux/features/cartSlice";
+import { useSelector } from "react-redux";
 import { selectUser } from "../../redux/features/userSlice";
 
 const { Search } = Input;
@@ -38,22 +37,24 @@ function MenuPage() {
   const [modalVisible, setModalVisible] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [cartItems, setCartItems] = useState([]); // Danh sách món từ API
   const navigate = useNavigate();
   const user = useSelector(selectUser);
-  const [orderLoading, setOrderLoading] = useState(false); // load món ăn
+  const [orderLoading, setOrderLoading] = useState(false);
   const tableQr = "qrtable_22813b59-263a-4275-b7a3-b8853f868da2.png";
 
   useEffect(() => {
     fetchMenuData();
     fetchCategories();
+    fetchCartItems(); // Gọi API giỏ hàng khi mount
   }, []);
 
-  //  Lấy danh sách món ăn từ API
+  // Lấy danh sách món ăn từ API
   const fetchMenuData = async () => {
     try {
       const res = await api.get(`menu/restaurant/${user.restaurantId}`);
       if (res.status === 200 && res.data.data.length > 0) {
-        const menu = res.data.data[0]; // Lấy menu đầu tiên
+        const menu = res.data.data[0];
         setMenuData(menu.menuItems || []);
       } else {
         message.error("Không thể lấy dữ liệu món ăn!");
@@ -64,13 +65,13 @@ function MenuPage() {
     }
   };
 
-  //  Lấy danh sách danh mục từ API
+  // Lấy danh sách danh mục từ API
   const fetchCategories = async () => {
     try {
       const res = await api.get("/category");
       if (res.status === 200 && res.data.data) {
         setCategories(res.data.data);
-        setSelectedCategory(res.data.data[0]?.name || null); // Chọn danh mục đầu tiên nếu có
+        setSelectedCategory(res.data.data[0]?.name || null);
       } else {
         message.error("Không thể lấy danh mục!");
       }
@@ -80,12 +81,29 @@ function MenuPage() {
     }
   };
 
-  //  Khi chọn danh mục
+  // Lấy danh sách món trong giỏ hàng từ API
+  const fetchCartItems = async () => {
+    try {
+      const res = await api.get(`/cart/${tableQr}`);
+      if (res.status === 200 && res.data.data) {
+        setCartItems(res.data.data); // Lưu dữ liệu từ API vào state
+      } else {
+        message.error("Không thể lấy dữ liệu giỏ hàng!");
+        setCartItems([]); // Reset nếu không có dữ liệu
+      }
+    } catch (error) {
+      message.error("Lỗi khi lấy giỏ hàng: " + error.message);
+      console.error("API Error:", error);
+      setCartItems([]);
+    }
+  };
+
+  // Khi chọn danh mục
   const handleCategoryClick = (categoryName) => {
     setSelectedCategory(categoryName);
   };
 
-  //  Lọc món ăn theo danh mục (categoryName) và từ khóa tìm kiếm
+  // Lọc món ăn theo danh mục và từ khóa tìm kiếm
   const filteredMenu = menuData
     .filter(
       (item) =>
@@ -95,13 +113,13 @@ function MenuPage() {
       item.foodName.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-  //  Điều hướng sang trang giỏ hàng
+  // Điều hướng sang trang giỏ hàng
   const showCart = () => {
-    if (cartcount.length === 0) {
+    if (cartItems.length === 0) {
       message.info("Giỏ hàng của bạn đang trống");
       return;
     }
-    navigate("/cart");
+    navigate("/cart", { state: { cartItems } }); // Truyền cartItems sang CartPage nếu cần
   };
 
   // Mở modal khi nhấn vào nút "Thêm vào giỏ"
@@ -130,9 +148,6 @@ function MenuPage() {
     setSelectedItem(null);
   };
 
-  // Dispatch để thêm vào giỏ hàng
-  const dispatch = useDispatch();
-
   // Hàm thêm món vào giỏ hàng
   const handleAddToCart = async () => {
     if (!selectedItem) return;
@@ -148,28 +163,27 @@ function MenuPage() {
       });
 
       if (response.status === 200) {
-        // Thêm sản phẩm vào Redux với số lượng đã chọn
-        const itemWithQuantity = {
-          ...selectedItem,
-          quantity: quantity,
-        };
-        dispatch(addProduct(itemWithQuantity));
         message.success(
           `${quantity} ${selectedItem.foodName} đã thêm vào giỏ hàng!`
         );
         setModalVisible(false);
+        fetchCartItems(); // Gọi lại API để cập nhật giỏ hàng
       } else {
         message.error("Không thể thêm món ăn vào giỏ hàng!");
       }
     } catch (error) {
-      message.error("Lỗi khi thêm món ăn!");
+      message.error("Lỗi khi thêm món ăn: " + error.message);
       console.error("API Error:", error);
+    } finally {
+      setOrderLoading(false);
     }
-    setOrderLoading(false);
   };
 
-  // Đếm sản phẩm trong giỏ hàng
-  const cartcount = useSelector((state) => state.cart.items);
+  // Tính tổng số lượng món trong giỏ hàng từ API
+  const totalCartQuantity = cartItems.reduce(
+    (sum, item) => sum + (item.quantity || 0),
+    0
+  );
 
   return (
     <Layout className="mcdonalds-theme">
@@ -245,14 +259,10 @@ function MenuPage() {
         open={modalVisible}
         onCancel={handleCancel}
         footer={[
-          // <Button key="cancel" onClick={handleCancel}>
-          //   Hủy
-          // </Button>,
           <Button
             key="submit"
             type="primary"
             block
-            // className="checkout-button"
             className="add-to-cart-btn"
             loading={orderLoading}
             onClick={handleAddToCart}
@@ -296,7 +306,7 @@ function MenuPage() {
       {/* Nút giỏ hàng nổi */}
       <FloatButton
         icon={<ShoppingCartOutlined />}
-        badge={{ count: cartcount.length }}
+        badge={{ count: totalCartQuantity }} // Hiển thị tổng số lượng món từ API
         onClick={showCart}
       />
     </Layout>
