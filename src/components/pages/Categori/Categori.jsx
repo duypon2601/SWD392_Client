@@ -18,11 +18,13 @@ function CategoriManagement() {
   const [openModal, setOpenModal] = useState(false);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [form] = useForm();
   const [previewOpen, setPreviewOpen] = useState(false);
 
   const fetchCategories = async () => {
     try {
+      setLoading(true);
       const res = await api.get("/category");
       if (res.data.statusCode === 200 && res.data.data) {
         setCategories(res.data.data);
@@ -34,10 +36,12 @@ function CategoriManagement() {
       console.error("Lỗi khi lấy danh mục:", error);
       message.error("Không thể lấy danh mục");
     }
+    setLoading(false);
   };
 
   const handleDeleteCategory = async (categoryId) => {
     try {
+      setLoading(true);
       await api.delete(`/category/${categoryId}`);
       message.success("Xóa danh mục thành công!");
       alert("Xóa danh mục thành công!");
@@ -46,6 +50,7 @@ function CategoriManagement() {
       console.error("Lỗi khi xóa danh mục:", error);
       message.error("Xóa danh mục thất bại");
     }
+    setLoading(false);
   };
 
   const showAddModal = () => {
@@ -57,15 +62,17 @@ function CategoriManagement() {
 
   const handleAddCategory = async () => {
     try {
+      setLoading(true);
       const values = await form.validateFields();
       await api.post("/category", values);
       message.success("Thêm danh mục thành công!");
-      alert("Thêm danh mục thành công!");
       setOpenModal(false);
       fetchCategories();
     } catch (error) {
       console.error("Lỗi khi thêm danh mục:", error);
       message.error("Thêm danh mục thất bại");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -80,10 +87,10 @@ function CategoriManagement() {
 
   const handleUpdateCategory = async () => {
     try {
+      setLoading(true);
       const values = await form.validateFields();
       await api.put(`/category/${editingCategory.category_id}`, values);
       message.success("Cập nhật danh mục thành công!");
-      alert("Cập nhật danh mục thành công!");
       setOpenModal(false);
       fetchCategories();
     } catch (error) {
@@ -132,6 +139,7 @@ function CategoriManagement() {
               title="Xóa danh mục"
               description="Bạn có chắc chắn muốn xóa danh mục này không?"
               onConfirm={() => handleDeleteCategory(record.category_id)}
+              loading={loading}
             >
               <Button type="primary" danger icon={<DeleteOutlined />}>
                 Delete
@@ -155,15 +163,28 @@ function CategoriManagement() {
 
       <Modal
         title={isAddingNew ? "Thêm danh mục mới" : "Cập nhật danh mục"}
+        block
         open={openModal}
         onOk={handleModalOk}
         onCancel={handleCancel}
+        confirmLoading={loading}
       >
         <Form form={form} layout="vertical">
           <Form.Item
             name="name"
             label="Tên danh mục"
-            rules={[{ required: true, message: "Vui lòng nhập tên danh mục!" }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập tên danh mục!" },
+              { min: 2, message: "Tên danh mục phải có ít nhất 2 ký tự!" },
+              {
+                max: 50,
+                message: "Tên danh mục không được vượt quá 50 ký tự!",
+              },
+              {
+                pattern: /^[a-zA-ZÀ-ỹ\s]+$/,
+                message: "Tên danh mục chỉ được chứa chữ cái và khoảng trắng!",
+              },
+            ]}
           >
             <Input />
           </Form.Item>

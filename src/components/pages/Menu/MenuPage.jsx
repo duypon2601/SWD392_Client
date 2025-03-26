@@ -41,7 +41,7 @@ function MenuPage() {
   const navigate = useNavigate();
   const user = useSelector(selectUser);
   const [orderLoading, setOrderLoading] = useState(false);
-  const tableQr = "qrtable_22813b59-263a-4275-b7a3-b8853f868da2.png";
+  const tableQr = "qrtable_f987f78d-059c-495f-a3f0-ff0a3313d500.png";
 
   useEffect(() => {
     fetchMenuData();

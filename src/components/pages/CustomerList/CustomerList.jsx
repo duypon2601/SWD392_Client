@@ -9,7 +9,7 @@ import {
   message,
   Space,
 } from "antd";
-import api from "../../config/axios"; // Đường dẫn
+import api from "../../config/axios";
 
 const { Option } = Select;
 
@@ -76,9 +76,10 @@ function CreateAccount() {
   //  Gửi dữ liệu để thêm/sửa tài khoản
   const handleSubmit = async () => {
     try {
+      setLoading(true);
       const values = await form.validateFields();
       console.log(values);
-      
+
       if (editingUser) {
         // Sửa tài khoản
         await api.put(`/user/${editingUser.user_id}`, values);
@@ -95,6 +96,7 @@ function CreateAccount() {
       message.error("Lỗi khi lưu tài khoản!");
       console.error("API Error:", error);
     }
+    setLoading(false);
   };
 
   //  Xóa tài khoản
@@ -117,8 +119,6 @@ function CreateAccount() {
 
   return (
     <div>
-      <h1>Danh sách nhân viên</h1>
-
       <Button type="primary" onClick={() => openModal()}>
         Thêm Tài Khoản
       </Button>
@@ -145,7 +145,7 @@ function CreateAccount() {
           key="actions"
           render={(text, record) => (
             <Space>
-              <Button onClick={() => openModal(record)} type={"primary"}>
+              <Button onClick={() => openModal(record)} type={"primary"} block>
                 Sửa
               </Button>
               <Button
@@ -171,10 +171,19 @@ function CreateAccount() {
           <Form.Item
             label="Họ và tên"
             name="name"
-            rules={[{ required: true, message: "Vui lòng nhập tên!" }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập tên!" },
+              {
+                pattern: /^[a-zA-ZÀ-ỹ\s]+$/,
+                message: "Tên chỉ được chứa chữ cái và khoảng trắng!",
+              },
+              { min: 2, message: "Tên phải có ít nhất 2 ký tự!" },
+              { max: 50, message: "Tên không được vượt quá 50 ký tự!" },
+            ]}
           >
             <Input />
           </Form.Item>
+
           <Form.Item
             name="email"
             label="Email"
@@ -192,15 +201,30 @@ function CreateAccount() {
           <Form.Item
             label="Tài khoản"
             name="username"
-            rules={[{ required: true, message: "Vui lòng nhập tài khoản" }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập tài khoản" },
+              {
+                pattern: /^[a-zA-Z0-9]+$/,
+                message: "Tài khoản chỉ được chứa chữ cái và số!",
+              },
+              { min: 3, message: "Tài khoản phải có ít nhất 3 ký tự!" },
+              { max: 20, message: "Tài khoản không được vượt quá 20 ký tự!" },
+            ]}
           >
             <Input />
           </Form.Item>
+
           <Form.Item
             label="Mật khẩu"
             name="password"
             rules={[
               { required: !editingUser, message: "Vui lòng nhập mật khẩu!" },
+              { min: 6, message: "Mật khẩu phải có ít nhất 6 ký tự!" },
+              {
+                pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]*$/,
+                message:
+                  "Mật khẩu phải chứa ít nhất 1 chữ cái thường, 1 chữ cái in hoa và 1 số!",
+              },
             ]}
           >
             <Input.Password />
@@ -223,7 +247,7 @@ function CreateAccount() {
                 <Option
                   key={restaurant.restaurantId}
                   value={restaurant.restaurantId}
-                > 
+                >
                   {restaurant.name}
                 </Option>
               ))}

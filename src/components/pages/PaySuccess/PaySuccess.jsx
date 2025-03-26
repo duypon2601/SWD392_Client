@@ -2,12 +2,12 @@ import React, { useEffect } from "react";
 import { Result, Button, message } from "antd";
 import { CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import api from "../../config/axios"; 
+import api from "../../config/axios";
 
 function PaySuccess() {
   const navigate = useNavigate();
   const { orderId } = useParams();
-  const [searchParams] = useSearchParams(); 
+  const [searchParams] = useSearchParams();
 
   // Hàm điều hướng về trang danh sách bàn
   const handleBackToTables = () => {
@@ -33,8 +33,8 @@ function PaySuccess() {
   };
 
   useEffect(() => {
-    const amount = searchParams.get("vnp_Amount"); 
-    const transactionStatus = searchParams.get("vnp_TransactionStatus"); 
+    const amount = searchParams.get("vnp_Amount");
+    const transactionStatus = searchParams.get("vnp_TransactionStatus");
 
     if (orderId) {
       console.log("Order ID:", orderId);
@@ -50,7 +50,7 @@ function PaySuccess() {
           // Thanh toán thành công
           console.log("Thanh toán thành công!");
           message.success("Thanh toán thành công!");
-          callPaymentCallback(amount, orderId); 
+          callPaymentCallback(amount, orderId);
         } else {
           // Thanh toán không thành công
           console.log(
@@ -69,7 +69,7 @@ function PaySuccess() {
   return (
     <div
       style={{
-        minHeight: "10vh", 
+        minHeight: "10vh",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
