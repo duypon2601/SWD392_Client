@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // const baseUrl = "http://localhost:8080/";
-const baseUrl = "https://swd-392-client-delta.vercel.app/";
+const baseUrl = "https://swd392-server-vakx.onrender.com/";
 
 const api = axios.create({
   baseURL: baseUrl,
