@@ -50,7 +50,7 @@ function App() {
     //   element: <Test />,
     // },
     {
-      path: "TableManagement",
+      path: "/TableManagement",
       element: <TableManagement />,
     },
     {
