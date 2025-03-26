@@ -42,6 +42,7 @@ const TableManagement = () => {
   const [menuItems, setMenuItems] = useState([]);
   const [subOrderLoading, setSubOrderLoading] = useState(false);
   const [pendingItemsByTable, setPendingItemsByTable] = useState({});
+  const [totalAmountFromApi, setTotalAmountFromApi] = useState(0); // Thêm state để lưu totalAmount từ menuItems
 
   const handleLogout = () => {
     setOrderLoading(true);
@@ -107,14 +108,23 @@ const TableManagement = () => {
   const fetchMenuItems = async (diningTableId) => {
     try {
       const res = await api.get(`/order/dining-table/${diningTableId}`);
+      console.log("fetchMenuItems response:", res.data); // Log để kiểm tra dữ liệu
       if (res.status === 200 && res.data.data && res.data.data.orderItems) {
         setMenuItems(res.data.data.orderItems);
+        // Tính totalAmount từ orderItems.price
+        const total = res.data.data.orderItems.reduce(
+          (sum, item) => sum + (item.price || 0),
+          0
+        );
+        setTotalAmountFromApi(total);
       } else {
         setMenuItems([]);
+        setTotalAmountFromApi(0);
       }
     } catch (error) {
       console.error("Lỗi khi tải danh sách món ăn:", error);
       setMenuItems([]);
+      setTotalAmountFromApi(0);
     }
   };
 
@@ -124,7 +134,6 @@ const TableManagement = () => {
       if (res.status === 200 && res.data.data) {
         const orderId = res.data.data.id;
         const subOrderRes = await api.get(`/sub_order/order/${orderId}`);
-
         if (subOrderRes.status === 200 && subOrderRes.data.data) {
           const subOrdersData = subOrderRes.data.data;
           if (setForSelected) {
@@ -202,24 +211,17 @@ const TableManagement = () => {
       message.error("Vui lòng chọn bàn trước khi thanh toán!");
       return;
     }
-
     try {
       setOrderLoading(true);
-
-      // Lấy orderId từ API
       const orderRes = await api.get(`/order/dining-table/${selectedTable.id}`);
       if (!orderRes.data.data || !orderRes.data.data.id) {
         message.error("Không tìm thấy đơn hàng cho bàn này!");
         return;
       }
       const orderId = orderRes.data.data.id;
-
-      // Gọi API complete order
       const completeRes = await api.put(`/order/${orderId}/complete`);
-
       if (completeRes.status === 200) {
         message.success("Thanh toán thành công!");
-        // Cập nhật lại danh sách bàn và dữ liệu
         await fetchTableList();
         if (selectedTable) {
           await fetchSubOrders(selectedTable.id, true);
@@ -240,49 +242,26 @@ const TableManagement = () => {
       message.error("Vui lòng chọn bàn trước khi thanh toán!");
       return;
     }
-
     try {
       setOrderLoading(true);
-
-      // Lấy orderId và kiểm tra dữ liệu
       const orderRes = await api.get(`/order/dining-table/${selectedTable.id}`);
-      console.log("Order Response:", orderRes.data); // Log để kiểm tra
       if (!orderRes.data.data || !orderRes.data.data.id) {
         message.error("Không tìm thấy đơn hàng cho bàn này!");
         return;
       }
       const orderId = orderRes.data.data.id;
-
-      // Log dữ liệu trước khi gửi
-      console.log("Total Amount:", totalAmount);
-      console.log("Order ID:", orderId);
-
       const paymentData = {
-        amount: totalAmount,
+        amount: totalAmountFromApi, // Dùng totalAmount từ menuItems
         orderId: orderId,
       };
-
-      // Gọi 2 API cùng lúc
-      const [createRes, callbackRes] = await Promise.all([
-        api.post("/payment/create", paymentData),
-        // api.post("/payment/callback", paymentData),
-      ]);
-
-      // Log kết quả từ API
-      console.log("Create Payment Response:", createRes.data);
-      // chuyển ssang trang vnpay
-      window.open(createRes.data);
-      console.log("Callback Response:", callbackRes.data);
-
-      // Xử lý kết quả từ /payment/create
+      const createRes = await api.post("/payment/create", paymentData);
       if (createRes.status === 200 && createRes.data) {
         let paymentUrl = createRes.data;
-        // Nếu API trả về JSON với key "url" hoặc tương tự
         if (typeof createRes.data === "object" && createRes.data.url) {
           paymentUrl = createRes.data.url;
         }
         if (typeof paymentUrl === "string" && paymentUrl.startsWith("http")) {
-          window.location.href = paymentUrl; // Chuyển hướng
+          window.open(paymentUrl);
           message.success("Đang chuyển hướng đến VNPay...");
         } else {
           message.error("URL thanh toán không hợp lệ!");
@@ -290,19 +269,9 @@ const TableManagement = () => {
       } else {
         message.error("Tạo link thanh toán VNPay thất bại!");
       }
-
-      // Kiểm tra callback (chỉ log, không ảnh hưởng đến flow chính)
-      if (callbackRes.status === 200) {
-        console.log("Callback lưu dữ liệu thành công:", callbackRes.data);
-      } else {
-        message.warning("Callback thất bại nhưng không ảnh hưởng thanh toán!");
-      }
     } catch (error) {
       console.error("Lỗi khi xử lý VNPay:", error);
-      message.error(
-        "Lỗi thanh toán VNPay: " +
-          (error.response?.data?.message || error.message)
-      );
+      message.error("Lỗi thanh toán VNPay: " + error.message);
     } finally {
       setOrderLoading(false);
     }
@@ -310,7 +279,6 @@ const TableManagement = () => {
 
   useEffect(() => {
     fetchTableList();
-
     const interval = setInterval(() => {
       fetchTableList();
       if (selectedTable) {
@@ -318,7 +286,6 @@ const TableManagement = () => {
         fetchMenuItems(selectedTable.id);
       }
     }, 5000);
-
     return () => clearInterval(interval);
   }, [selectedTable]);
 
@@ -379,11 +346,16 @@ const TableManagement = () => {
       align: "center",
       width: 120,
       render: (status) => {
-        let color = "default";
-        if (status === "PENDING") color = "warning";
-        if (status === "COMPLETED") color = "success";
-        if (status === "CANCELLED") color = "error";
-        if (status === "CONFIRMED") color = "processing";
+        let color =
+          status === "PENDING"
+            ? "warning"
+            : status === "COMPLETED"
+            ? "success"
+            : status === "CANCELLED"
+            ? "error"
+            : status === "CONFIRMED"
+            ? "processing"
+            : "default";
         return <Badge status={color} text={status} />;
       },
     },
@@ -405,10 +377,7 @@ const TableManagement = () => {
     },
   ];
 
-  const totalAmount =
-    subOrders.length > 0
-      ? subOrders.reduce((sum, subOrder) => sum + subOrder.totalPrice, 0)
-      : menuItems.reduce((sum, item) => sum + item.price, 0);
+  const totalAmount = totalAmountFromApi; // Dùng totalAmount từ menuItems
 
   const handleTableSelect = (table) => {
     setSelectedTable(table);
@@ -609,6 +578,24 @@ const TableManagement = () => {
                             </div>
                           </div>
                         ))}
+                        {/* Thêm tổng cộng ngay dưới danh sách */}
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            paddingTop: 12,
+                            borderTop: "1px solid #e8e8e8",
+                            marginTop: 8,
+                          }}
+                        >
+                          <Text strong>Tổng cộng:</Text>
+                          <Text
+                            strong
+                            style={{ color: "#f5222d", fontSize: 16 }}
+                          >
+                            {totalAmount.toLocaleString()}đ
+                          </Text>
+                        </div>
                       </div>
                     ) : (
                       <Empty
@@ -627,27 +614,27 @@ const TableManagement = () => {
                   locale={{ emptyText: "Chưa có món ăn nào được chọn" }}
                   rowClassName="order-table-row"
                   style={{ marginBottom: 24 }}
-                  summary={() => (
-                    <Table.Summary>
-                      <Table.Summary.Row>
-                        <Table.Summary.Cell
-                          colSpan={3}
-                          style={{ textAlign: "right" }}
-                        >
-                          <Text strong>Tổng cộng:</Text>
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell style={{ textAlign: "right" }}>
-                          <Text
-                            strong
-                            style={{ color: "#f5222d", fontSize: 16 }}
-                          >
-                            {totalAmount.toLocaleString()}đ
-                          </Text>
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell></Table.Summary.Cell>
-                      </Table.Summary.Row>
-                    </Table.Summary>
-                  )}
+                  // summary={() => (
+                  //   <Table.Summary>
+                  //     <Table.Summary.Row>
+                  //       <Table.Summary.Cell
+                  //         colSpan={3}
+                  //         style={{ textAlign: "right" }}
+                  //       >
+                  //         <Text strong>Tổng cộng:</Text>
+                  //       </Table.Summary.Cell>
+                  //       <Table.Summary.Cell style={{ textAlign: "right" }}>
+                  //         <Text
+                  //           strong
+                  //           style={{ color: "#f5222d", fontSize: 16 }}
+                  //         >
+                  //           {totalAmount.toLocaleString()}đ
+                  //         </Text>
+                  //       </Table.Summary.Cell>
+                  //       <Table.Summary.Cell></Table.Summary.Cell>
+                  //     </Table.Summary.Row>
+                  //   </Table.Summary>
+                  // )}
                 />
               </Card>
             </Col>
@@ -708,8 +695,8 @@ const TableManagement = () => {
                     !selectedTable
                   }
                   style={{ height: "46px", fontSize: "16px" }}
-                  onClick={handlePayment} // Thêm sự kiện onClick
-                  loading={orderLoading} // Thêm trạng thái loading
+                  onClick={handlePayment}
+                  loading={orderLoading}
                 >
                   Thanh Toán
                 </Button>

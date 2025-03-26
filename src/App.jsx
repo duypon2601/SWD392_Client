@@ -30,11 +30,11 @@ function App() {
 
   const router = createBrowserRouter([
     {
-      path: "/",
+      path: "/:tableQr",
       element: <MenuPage />,
     },
     {
-      path: "/cart", // Không cần "/MenuPage/CartPage"
+      path: "/:tableQr/cart", // Không cần "/MenuPage/CartPage"
       element: <CartPage />,
     },
     {

@@ -140,7 +140,7 @@ const Manager = () => {
             style={{ fontSize: "18px", marginLeft: "10px" }}
           />
           <Title level={3} style={{ margin: 0, color: "#333" }}>
-            id:{user.restaurantId}, Tên_NH:{user.name} DASHBOARD
+            {user.restaurant_name} DASHBOARD
           </Title>
           <Popconfirm
             title="Bạn có chắc muốn đăng xuất?"

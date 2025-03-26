@@ -23,7 +23,7 @@ import {
   MinusOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import api from "../../config/axios";
 import "./CartPage.css";
 
@@ -35,13 +35,12 @@ function CartPage() {
   const [loading, setLoading] = useState(true);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const navigate = useNavigate();
-  const tableQr = "qrtable_d5d5fbbd-b834-4a4a-9704-598422a27ffb.png";
+  const { tableQr } = useParams();
 
   useEffect(() => {
     fetchCartItems();
-  }, []);
+  }, [tableQr]);
 
-  // Lấy danh sách giỏ hàng từ API
   const fetchCartItems = async () => {
     try {
       setLoading(true);
@@ -59,11 +58,9 @@ function CartPage() {
     }
   };
 
-  // Cập nhật số lượng món ăn
   const updateQuantity = async (menuItemId, newQuantity) => {
     try {
       if (newQuantity <= 0) {
-        // Hiển thị xác nhận xóa nếu số lượng <= 0
         Modal.confirm({
           title: "Xác nhận xóa",
           content: "Bạn có muốn xóa món ăn này khỏi giỏ hàng?",
@@ -74,17 +71,13 @@ function CartPage() {
         return;
       }
 
-      // Chuẩn bị dữ liệu để cập nhật với cấu trúc mới
       const updateData = {
         menuItemId: menuItemId,
         quantity: newQuantity,
       };
 
-      // Gọi API cập nhật với endpoint mới
       const response = await api.put(`cart/${tableQr}/update-item`, updateData);
-
       if (response.status === 200) {
-        // Cập nhật state
         setCartItems((prevItems) =>
           prevItems.map((item) =>
             item.menuItemId === menuItemId
@@ -92,7 +85,6 @@ function CartPage() {
               : item
           )
         );
-        console.log(cartItems);
         message.success("Đã cập nhật số lượng");
       } else {
         message.error("Không thể cập nhật số lượng!");
@@ -100,12 +92,10 @@ function CartPage() {
     } catch (error) {
       console.error("Lỗi khi cập nhật số lượng:", error);
       message.error("Không thể cập nhật số lượng!");
-      // Khôi phục lại số lượng ban đầu
       fetchCartItems();
     }
   };
 
-  // Xác nhận trước khi xóa món ăn
   const confirmRemoveItem = (menuItemId) => {
     Modal.confirm({
       title: "Xác nhận xóa",
@@ -116,14 +106,10 @@ function CartPage() {
     });
   };
 
-  // Xóa món ăn khỏi giỏ hàng
   const removeCartItem = async (menuItemId) => {
     try {
-      // Điều chỉnh endpoint để phù hợp với API của bạn
       const response = await api.delete(`cart/${tableQr}/remove/${menuItemId}`);
-
       if (response.status === 200) {
-        // Cập nhật state
         setCartItems((prevItems) =>
           prevItems.filter((item) => item.menuItemId !== menuItemId)
         );
@@ -137,7 +123,6 @@ function CartPage() {
     }
   };
 
-  // Tính tổng tiền
   const calculateTotal = () => {
     return cartItems.reduce(
       (total, item) => total + item.price * item.quantity,
@@ -145,7 +130,6 @@ function CartPage() {
     );
   };
 
-  // Xác nhận đặt món
   const confirmOrder = () => {
     Modal.confirm({
       title: "Xác nhận đặt món",
@@ -156,11 +140,9 @@ function CartPage() {
     });
   };
 
-  // Xử lý đặt món
   const handlePlaceOrder = async () => {
     try {
       const response = await api.post(`/cart/${tableQr}/checkout`);
-
       if (response.status === 200) {
         setOrderPlaced(true);
         setCartItems([]);
@@ -174,12 +156,10 @@ function CartPage() {
     }
   };
 
-  // Quay lại trang menu
   const goToMenu = () => {
-    navigate("/");
+    navigate(`/${tableQr}`); // Sửa ở đây
   };
 
-  // Nếu đơn hàng đã được đặt
   if (orderPlaced) {
     return (
       <Layout className="cart-page">
