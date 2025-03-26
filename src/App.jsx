@@ -19,12 +19,11 @@ import CreateAccount from "./components/pages/CreateAccount/CreateAccount";
 import CreateRestaurant from "./components/pages/CreateRestaurant/CreateRestaurant";
 import CreateTable from "./components/pages/CreateTable/CreateTable";
 import Manager from "./components/pages/Manager/Manager";
-import AddMenu from "./components/pages/AddMenu/AddMenu";
+// import AddMenu from "./components/pages/AddMenu/AddMenu";
 import CreateMenu from "./components/pages/CreateMenu/CreateMenu";
 import MenuResId from "./components/pages/MenuResId/MenuResId";
 
 import PaySuccess from "./components/pages/PaySuccess/PaySuccess";
-
 
 function App() {
   const [count, setCount] = useState(0);
@@ -99,10 +98,10 @@ function App() {
       element: <Manager />,
       children: [
         { index: true, element: <CreateAccount /> },
-        {
-          path: "/Manager/AddMenu",
-          element: <AddMenu />,
-        },
+        // {
+        //   path: "/Manager/AddMenu",
+        //   element: <AddMenu />,
+        // },
         {
           path: "/Manager/CreateAccount",
           element: <CreateAccount />,
