@@ -21,6 +21,7 @@ import CreateTable from "./components/pages/CreateTable/CreateTable";
 import Manager from "./components/pages/Manager/Manager";
 import AddMenu from "./components/pages/AddMenu/AddMenu";
 import CreateMenu from "./components/pages/CreateMenu/CreateMenu";
+import MenuResId from "./components/pages/MenuResId/MenuResId";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -109,6 +110,10 @@ function App() {
         {
           path: "/Manager/CreateMenu",
           element: <CreateMenu />,
+        },
+        {
+          path: "/Manager/MenuResId",
+          element: <MenuResId />,
         },
       ],
     },
