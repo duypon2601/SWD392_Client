@@ -23,6 +23,7 @@ import "./MenuPage.css";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { selectUser } from "../../redux/features/userSlice";
+import { useParams } from "react-router-dom";
 
 const { Search } = Input;
 const { Content, Header } = Layout;
@@ -41,13 +42,14 @@ function MenuPage() {
   const navigate = useNavigate();
   const user = useSelector(selectUser);
   const [orderLoading, setOrderLoading] = useState(false);
-  const tableQr = "qrtable_f987f78d-059c-495f-a3f0-ff0a3313d500.png";
+  const { tableQr } = useParams();
+  // const tableQr = "qrtable_f987f78d-059c-495f-a3f0-ff0a3313d500.png";
 
   useEffect(() => {
     fetchMenuData();
     fetchCategories();
     fetchCartItems(); // Gọi API giỏ hàng khi mount
-  }, []);
+  }, [tableQr]);
 
   // Lấy danh sách món ăn từ API
   const fetchMenuData = async () => {
@@ -119,7 +121,7 @@ function MenuPage() {
       message.info("Giỏ hàng của bạn đang trống");
       return;
     }
-    navigate("/cart", { state: { cartItems } }); // Truyền cartItems sang CartPage nếu cần
+    navigate(`/${tableQr}/cart`, { state: { cartItems } }); // Truyền cartItems sang CartPage nếu cần
   };
 
   // Mở modal khi nhấn vào nút "Thêm vào giỏ"

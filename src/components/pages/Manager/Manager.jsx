@@ -53,7 +53,6 @@ const Manager = () => {
       setItems([
         getItem("CreateRestaurant", "CreateRestaurant", <AppstoreOutlined />),
         getItem("CreateAccount", "CreateAccount", <AppstoreAddOutlined />),
-        getItem("AddMenu", "AddMenu", <AppstoreOutlined />),
         getItem("CreateMenu", "CreateMenu", <AppstoreOutlined />),
         getItem("MenuResId", "MenuResId", <AppstoreOutlined />),
         getItem("CreateTable", "CreateTable", <AppstoreOutlined />),
@@ -141,7 +140,7 @@ const Manager = () => {
             style={{ fontSize: "18px", marginLeft: "10px" }}
           />
           <Title level={3} style={{ margin: 0, color: "#333" }}>
-            id:{user.restaurantId}, Tên_NH:{user.name} DASHBOARD
+            {user.restaurant_name} DASHBOARD
           </Title>
           <Popconfirm
             title="Bạn có chắc muốn đăng xuất?"
