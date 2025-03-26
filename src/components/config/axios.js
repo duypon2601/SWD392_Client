@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // const baseUrl = "http://localhost:8080/";
-const baseUrl = "https://moon-sand-eight.vercel.app/";
+const baseUrl = "https://moon-sand-eight.vercel.app";
 
 const api = axios.create({
   baseURL: baseUrl,
