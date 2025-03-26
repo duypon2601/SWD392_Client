@@ -14,7 +14,7 @@ import ListFood from "./components/pages/ListFood/ListFood";
 import Categori from "./components/pages/Categori/Categori";
 import TableManagement from "./components/pages/TableManagement/TableManagement";
 import { List } from "antd";
-import Test from "./components/pages/Test/Test";
+// import Test from "./components/pages/Test/Test";
 import CreateAccount from "./components/pages/CreateAccount/CreateAccount";
 import CreateRestaurant from "./components/pages/CreateRestaurant/CreateRestaurant";
 import CreateTable from "./components/pages/CreateTable/CreateTable";
@@ -45,10 +45,10 @@ function App() {
     //   path: "/student", // Thêm trang quản lý sinh viên
     //   element: <StudentManagement />,
     // },
-    {
-      path: "/test",
-      element: <Test />,
-    },
+    // {
+    //   path: "/test",
+    //   element: <Test />,
+    // },
     {
       path: "TableManagement",
       element: <TableManagement />,
