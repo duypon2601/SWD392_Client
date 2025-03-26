@@ -1,7 +1,18 @@
-import { Button, Form, Input, Modal, Table, Layout, message, Popconfirm, Spin, Space } from "antd";
+import {
+  Button,
+  Form,
+  Input,
+  Modal,
+  Table,
+  Layout,
+  message,
+  Popconfirm,
+  Spin,
+  Space,
+} from "antd";
 import { useForm } from "antd/es/form/Form";
 import React, { useState, useEffect } from "react";
-import { PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined } from "@ant-design/icons";
 import api from "../../config/axios";
 
 const { Content } = Layout;
@@ -84,34 +95,81 @@ function ListNhaHang() {
 
   return (
     <Content style={{ padding: "20px", background: "#fff", flex: 1 }}>
-      <h1>Danh sách Chi Nhánh</h1>
-      <Button type="primary" onClick={() => setVisible(true)}>Thêm Chi Nhánh</Button>
-      {loading ? <Spin /> : (
-        <Table 
-        dataSource={dataSource} 
-        columns={[
-          { title: "ID", dataIndex: "restaurantId", key: "restaurantId" },
-          { title: "Tên Chi Nhánh", dataIndex: "name", key: "name" },
-          { title: "Địa Chỉ", dataIndex: "location", key: "location" },
-          {
-            title: "Hành động",
-            key: "action",
-            render: (_, record) => (
-              <Space>
-                <Button type="primary" onClick={() => openEditModal(record)}>Sửa</Button>
-                <Button type="primary" danger onClick={() => handleDelete(record.restaurantId)}>Xóa</Button>
-              </Space>
-            ),
-          },
-        ]} 
-        rowKey="restaurantId" 
-      />
-      
+      <Button type="primary" onClick={() => setVisible(true)}>
+        Thêm Chi Nhánh
+      </Button>
+      {loading ? (
+        <Spin />
+      ) : (
+        <Table
+          dataSource={dataSource}
+          columns={[
+            { title: "ID", dataIndex: "restaurantId", key: "restaurantId" },
+            { title: "Tên Chi Nhánh", dataIndex: "name", key: "name" },
+            { title: "Địa Chỉ", dataIndex: "location", key: "location" },
+            {
+              title: "Hành động",
+              key: "action",
+              render: (_, record) => (
+                <Space>
+                  <Button type="primary" onClick={() => openEditModal(record)}>
+                    Sửa
+                  </Button>
+                  <Button
+                    type="primary"
+                    danger
+                    onClick={() => handleDelete(record.restaurantId)}
+                  >
+                    Xóa
+                  </Button>
+                </Space>
+              ),
+            },
+          ]}
+          rowKey="restaurantId"
+        />
       )}
-      <Modal title={editingBranch ? "Chỉnh sửa Chi Nhánh" : "Thêm Chi Nhánh"} open={visible} onCancel={resetForm} onOk={handleSubmit}>
+      <Modal
+        title={editingBranch ? "Chỉnh sửa Chi Nhánh" : "Thêm Chi Nhánh"}
+        open={visible}
+        onCancel={resetForm}
+        onOk={handleSubmit}
+      >
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label="Tên Chi Nhánh" rules={[{ required: true, message: "Nhập tên chi nhánh" }]}><Input /></Form.Item>
-          <Form.Item name="location" label="Địa Chỉ" rules={[{ required: true, message: "Nhập địa chỉ" }]}><Input /></Form.Item>
+          <Form.Item
+            name="name"
+            label="Tên Chi Nhánh"
+            rules={[
+              { required: true, message: "Nhập tên chi nhánh" },
+              { min: 2, message: "Tên chi nhánh phải có ít nhất 2 ký tự!" },
+              {
+                max: 50,
+                message: "Tên chi nhánh không được vượt quá 50 ký tự!",
+              },
+              {
+                pattern: /^[a-zA-ZÀ-ỹ\s]+$/,
+                message: "Tên chi nhánh chỉ được chứa chữ cái và khoảng trắng!",
+              },
+            ]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="location"
+            label="Địa Chỉ"
+            rules={[
+              { required: true, message: "Nhập địa chỉ" },
+              { min: 5, message: "Địa chỉ phải có ít nhất 5 ký tự!" },
+              { max: 100, message: "Địa chỉ không được vượt quá 100 ký tự!" },
+              {
+                pattern: /^[a-zA-ZÀ-ỹ0-9\s,.-]+$/,
+                message:
+                  "Địa chỉ chỉ được chứa chữ cái, số, khoảng trắng, dấu phẩy, dấu chấm và dấu gạch ngang!",
+              },
+            ]}
+          >
+            <Input />
+          </Form.Item>
         </Form>
       </Modal>
     </Content>

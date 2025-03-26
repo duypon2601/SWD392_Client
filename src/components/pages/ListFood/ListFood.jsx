@@ -29,6 +29,7 @@ function ListFood() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState("");
   const [fileList, setFileList] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchFoods();
@@ -72,6 +73,7 @@ function ListFood() {
       const url = await uploadFile(file.originFileObj);
       values.image_url = url;
     }
+    setLoading(true);
     try {
       const newFood = {
         food_id: 0,
@@ -96,6 +98,7 @@ function ListFood() {
     } catch (error) {
       message.error("Không thể thêm món ăn");
     }
+    setLoading(false);
   };
 
   // lấy ảnh
@@ -258,25 +261,45 @@ function ListFood() {
           open={visible}
           onCancel={() => setVisible(false)}
           onOk={() => form.submit()}
+          block
+          confirmLoading={loading}
         >
           <Form form={form} onFinish={handleSubmit}>
             <Form.Item
               name="name"
               label="Tên món ăn"
-              rules={[{ required: true, message: "Vui lòng nhập tên món ăn" }]}
+              rules={[
+                { required: true, message: "Vui lòng nhập tên món ăn" },
+                { min: 2, message: "Tên món ăn phải có ít nhất 2 ký tự!" },
+                {
+                  max: 50,
+                  message: "Tên món ăn không được vượt quá 50 ký tự!",
+                },
+                {
+                  pattern: /^[a-zA-ZÀ-ỹ\s]+$/,
+                  message: "Tên món ăn chỉ được chứa chữ cái và khoảng trắng!",
+                },
+              ]}
             >
               <Input />
             </Form.Item>
             <Form.Item
               name="description"
               label="Mô tả"
-              rules={[{ required: true, message: "Vui lòng nhập mô tả" }]}
+              rules={[
+                { required: true, message: "Vui lòng nhập mô tả" },
+                { min: 5, message: "Mô tả phải có ít nhất 5 ký tự!" },
+                { max: 200, message: "Mô tả không được vượt quá 200 ký tự!" },
+                {
+                  pattern: /^[a-zA-ZÀ-ỹ0-9\s,.-]+$/,
+                  message:
+                    "Mô tả chỉ được chứa chữ cái, số, khoảng trắng, dấu phẩy, dấu chấm và dấu gạch ngang!",
+                },
+              ]}
             >
               <Input />
             </Form.Item>
-            {/* <Form.Item name="image_url" label="Hình ảnh">
-              <Input placeholder="Nhập URL hình ảnh" />
-            </Form.Item> */}
+
             <Form.Item label="image" name="image">
               <Upload
                 action="https://660d2bd96ddfa2943b33731c.mockapi.io/api/upload"
@@ -330,10 +353,38 @@ function ListFood() {
           onOk={() => form.submit()}
         >
           <Form form={form} onFinish={handleUpdateFood}>
-            <Form.Item name="name" label="Tên món ăn">
+            <Form.Item
+              name="name"
+              label="Tên món ăn"
+              rules={[
+                { required: true, message: "Vui lòng nhập tên món ăn" },
+                { min: 2, message: "Tên món ăn phải có ít nhất 2 ký tự!" },
+                {
+                  max: 50,
+                  message: "Tên món ăn không được vượt quá 50 ký tự!",
+                },
+                {
+                  pattern: /^[a-zA-ZÀ-ỹ\s]+$/,
+                  message: "Tên món ăn chỉ được chứa chữ cái và khoảng trắng!",
+                },
+              ]}
+            >
               <Input />
             </Form.Item>
-            <Form.Item name="description" label="Mô tả">
+            <Form.Item
+              name="description"
+              label="Mô tả"
+              rules={[
+                { required: true, message: "Vui lòng nhập mô tả" },
+                { min: 5, message: "Mô tả phải có ít nhất 5 ký tự!" },
+                { max: 200, message: "Mô tả không được vượt quá 200 ký tự!" },
+                {
+                  pattern: /^[a-zA-ZÀ-ỹ0-9\s,.-]+$/,
+                  message:
+                    "Mô tả chỉ được chứa chữ cái, số, khoảng trắng, dấu phẩy, dấu chấm và dấu gạch ngang!",
+                },
+              ]}
+            >
               <Input />
             </Form.Item>
             <Form.Item name="image_url" label="Hình ảnh">
