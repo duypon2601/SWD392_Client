@@ -124,7 +124,7 @@ function CreateAccount() {
 
   return (
     <>
-      <Button type="primary" onClick={() => openModal()}>
+      <Button type="primary" onClick={() => openModal()} style={{ marginBottom: 10}}>
         Thêm Tài Khoản
       </Button>
       <Table

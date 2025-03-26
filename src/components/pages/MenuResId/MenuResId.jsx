@@ -113,13 +113,9 @@ const MenuResId = () => {
 
   return (
     <div>
-      <h2>Menu của Nhà Hàng {restaurantId || user?.restaurantId}</h2>
-      <p>Trạng thái: {isActive ? "Hoạt động" : "Không hoạt động"}</p>
-
-      <Button type="primary" onClick={() => setIsModalOpen(true)}>
+      <Button type="primary" onClick={() => setIsModalOpen(true)} style={{ marginBottom: 10}}>
         Thêm Món Mới
       </Button>
-
       {loading ? (
         <Spin size="large" />
       ) : (
