@@ -91,7 +91,7 @@ function CreateRestaurant() {
         dataSource={restaurants}
         rowKey="restaurantId"
         loading={loading}
-        style={{ marginTop: 20 }}
+        style={{ marginTop: 10 }}
       >
         <Table.Column title="ID" dataIndex="restaurantId" key="restaurantId" />
         <Table.Column title="Tên Nhà Hàng" dataIndex="name" key="name" />
