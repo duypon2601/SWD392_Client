@@ -3,11 +3,11 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  base: "./", // Đảm bảo đường dẫn tương đối
-  server: {
-    historyApiFallback: true, // Hỗ trợ React Router
-  },
+  base: "./", // Đảm bảo đường dẫn đúng
   build: {
-    outDir: "dist", // Đảm bảo thư mục build đúng
+    outDir: "dist",
+  },
+  server: {
+    historyApiFallback: true, // Hỗ trợ route của React Router
   },
 });
