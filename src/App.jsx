@@ -12,7 +12,7 @@ import DashBoard from "./components/pages/dashboard/dashboard";
 import Category from "./components/pages/Category/category";
 import ListFood from "./components/pages/ListFood/ListFood";
 import Categori from "./components/pages/Categori/Categori";
-import CafeManagement from "./components/pages/CafeManagement/CafeManagement";
+import TableManagement from "./components/pages/TableManagement/TableManagement";
 import { List } from "antd";
 import Test from "./components/pages/Test/Test";
 import CreateAccount from "./components/pages/CreateAccount/CreateAccount";
@@ -21,7 +21,11 @@ import CreateTable from "./components/pages/CreateTable/CreateTable";
 import Manager from "./components/pages/Manager/Manager";
 import AddMenu from "./components/pages/AddMenu/AddMenu";
 import CreateMenu from "./components/pages/CreateMenu/CreateMenu";
+<<<<<<< HEAD
 import MenuResId from "./components/pages/MenuResId/MenuResId";
+=======
+import PaySuccess from "./components/pages/PaySuccess/PaySuccess";
+>>>>>>> ed6b00f12e19ca75e68297d074608ab8021cf330
 
 function App() {
   const [count, setCount] = useState(0);
@@ -48,12 +52,16 @@ function App() {
       element: <Test />,
     },
     {
-      path: "CafeManagement",
-      element: <CafeManagement />,
+      path: "TableManagement",
+      element: <TableManagement />,
     },
     {
       path: "/CreateRestaurant",
       element: <CreateRestaurant />,
+    },
+    {
+      path: "/paysuccess/:orderId",
+      element: <PaySuccess />,
     },
 
     {
@@ -91,6 +99,11 @@ function App() {
       path: "/Manager",
       element: <Manager />,
       children: [
+        { index: true, element: <CreateAccount /> },
+        {
+          path: "/Manager/AddMenu",
+          element: <AddMenu />,
+        },
         {
           path: "/Manager/CreateAccount",
           element: <CreateAccount />,
@@ -99,10 +112,7 @@ function App() {
           path: "/Manager/CreateRestaurant",
           element: <CreateRestaurant />,
         },
-        {
-          path: "/Manager/AddMenu",
-          element: <AddMenu />,
-        },
+       
         {
           path: "/Manager/CreateTable",
           element: <CreateTable />,

@@ -20,6 +20,8 @@ import {
   Typography,
 } from "antd";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { selectUser } from "../../redux/features/userSlice";
 
 const { Header, Content, Sider, Footer } = Layout;
 const { Title } = Typography;
@@ -44,6 +46,7 @@ const Manager = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const role = "manager";
+  const user = useSelector(selectUser);
 
   useEffect(() => {
     if (role === "manager") {
@@ -60,10 +63,12 @@ const Manager = () => {
 
   useEffect(() => {
     const currentURI = location.pathname.split("/").pop();
-    if (currentURI === "manager") {
-      navigate("/Manager/CreateRestaurant");
+    // Nếu đường dẫn là "/manager", chuyển hướng đến "/manager/AddMenu"
+    if (currentURI === "manager" || location.pathname === "/manager") {
+      navigate("/manager/AddMenu");
+    } else {
+      setOpenKeys((prevKeys) => [...prevKeys, currentURI]);
     }
-    setOpenKeys((prevKeys) => [...prevKeys, currentURI]);
   }, [location.pathname, navigate]);
 
   useEffect(() => {
@@ -136,7 +141,7 @@ const Manager = () => {
             style={{ fontSize: "18px", marginLeft: "10px" }}
           />
           <Title level={3} style={{ margin: 0, color: "#333" }}>
-            {role.toLocaleUpperCase()} DASHBOARD
+            id:{user.restaurantId}, Tên_NH:{user.name} DASHBOARD
           </Title>
           <Popconfirm
             title="Bạn có chắc muốn đăng xuất?"
