@@ -55,6 +55,7 @@ const Manager = () => {
         getItem("CreateAccount", "CreateAccount", <AppstoreAddOutlined />),
         getItem("AddMenu", "AddMenu", <AppstoreOutlined />),
         getItem("CreateMenu", "CreateMenu", <AppstoreOutlined />),
+        getItem("MenuResId", "MenuResId", <AppstoreOutlined />),
         getItem("CreateTable", "CreateTable", <AppstoreOutlined />),
       ]);
     }
