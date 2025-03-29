@@ -244,39 +244,84 @@ const TableManagement = () => {
     }
     try {
       setOrderLoading(true);
+      console.log("Bắt đầu xử lý VNPay cho bàn:", selectedTable.id);
+
+      // Lấy thông tin đơn hàng
       const orderRes = await api.get(`/order/dining-table/${selectedTable.id}`);
-      if (!orderRes.data.data || !orderRes.data.data.id) {
+      console.log("Phản hồi từ /order/dining-table:", orderRes.data);
+      if (!orderRes.data?.data || !orderRes.data.data.id) {
         message.error("Không tìm thấy đơn hàng cho bàn này!");
         return;
       }
       const orderId = orderRes.data.data.id;
+      console.log("Order ID:", orderId);
+
+      // Kiểm tra và chuẩn hóa amount
+      const paymentAmount = Number(totalAmountFromApi) * 100;
+      console.log(
+        "Total amount trước khi gửi:",
+        totalAmountFromApi,
+        "Sau khi nhân 100:",
+        paymentAmount
+      );
+      if (isNaN(paymentAmount) || paymentAmount <= 0) {
+        message.error("Tổng tiền không hợp lệ hoặc bằng 0!");
+        return;
+      }
+
+      // Tạo payload
       const paymentData = {
-        amount: totalAmountFromApi, // Dùng totalAmount từ menuItems
+        amount: paymentAmount,
         orderId: orderId,
       };
+      console.log("Payment data gửi đi:", paymentData);
+
+      // Gửi yêu cầu tạo link thanh toán
       const createRes = await api.post("/payment/create", paymentData);
-      if (createRes.status === 200 && createRes.data) {
+      console.log("Phản hồi từ /payment/create:", createRes.data);
+
+      // Kiểm tra status 200 hoặc 201
+      if (
+        (createRes.status === 200 || createRes.status === 201) &&
+        createRes.data
+      ) {
         let paymentUrl = createRes.data;
         if (typeof createRes.data === "object" && createRes.data.url) {
           paymentUrl = createRes.data.url;
         }
+        console.log("Payment URL đã xử lý:", paymentUrl);
         if (typeof paymentUrl === "string" && paymentUrl.startsWith("http")) {
-          window.open(paymentUrl);
+          window.open(paymentUrl, "_blank");
           message.success("Đang chuyển hướng đến VNPay...");
+          console.log("VNPay URL (cuối cùng):", paymentUrl); // Dòng bạn muốn thấy
         } else {
           message.error("URL thanh toán không hợp lệ!");
+          console.error("URL không đúng định dạng:", paymentUrl);
         }
       } else {
         message.error("Tạo link thanh toán VNPay thất bại!");
+        console.error("Phản hồi không mong đợi từ /payment/create:", createRes);
       }
     } catch (error) {
-      console.error("Lỗi khi xử lý VNPay:", error);
-      message.error("Lỗi thanh toán VNPay: " + error.message);
+      console.error(
+        "Chi tiết lỗi VNPay:",
+        error.response?.data || error.message
+      );
+      if (error.response?.status === 500) {
+        message.error(
+          "Lỗi server: Không thể xử lý thanh toán VNPay. Vui lòng chọn bàn khác hoặc thử lại sau!"
+        );
+      } else {
+        message.error(
+          `Lỗi thanh toán VNPay: ${
+            error.response?.data?.message || error.message
+          }`
+        );
+      }
     } finally {
       setOrderLoading(false);
     }
   };
-
   useEffect(() => {
     fetchTableList();
     const interval = setInterval(() => {
