@@ -51,7 +51,7 @@ const Manager = () => {
   useEffect(() => {
     if (role === "manager") {
       setItems([
-        getItem("CreateRestaurant", "CreateRestaurant", <AppstoreOutlined />),
+        // getItem("CreateRestaurant", "CreateRestaurant", <AppstoreOutlined />),
         getItem("CreateAccount", "CreateAccount", <AppstoreAddOutlined />),
         getItem("CreateMenu", "CreateMenu", <AppstoreOutlined />),
         getItem("MenuResId", "MenuResId", <AppstoreOutlined />),
