@@ -265,8 +265,8 @@ function ListFood() {
                 },
                 {
                   title: "Danh mục",
-                  dataIndex: "category_id",
-                  key: "category_id",
+                  dataIndex: "categoryName",
+                  key: "categoryName",
                 },
                 { title: "Trạng thái", dataIndex: "status", key: "status" },
                 {
