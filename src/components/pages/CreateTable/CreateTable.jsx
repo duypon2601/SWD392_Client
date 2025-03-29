@@ -169,7 +169,7 @@ function CreateTable() {
           </Form.Item>
 
           <Form.Item label="Mã nhà hàng">
-            <Input value={user?.name} disabled />
+            <Input value={user?.restaurant_name} disabled />
           </Form.Item>
         </Form>
       </Modal>
