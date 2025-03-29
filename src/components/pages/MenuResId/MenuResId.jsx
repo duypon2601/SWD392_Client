@@ -10,8 +10,8 @@ const MenuResId = () => {
   const [menuItems, setMenuItems] = useState([]);
   const [foodList, setFoodList] = useState([]);
   const [loading, setLoading] = useState({
-    table: true, // Loading cho bảng khi fetch lần đầu
-    submit: false, // Loading cho nút OK trong modal
+    table: true,
+    submit: false,
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedFood, setSelectedFood] = useState(null);
@@ -20,7 +20,7 @@ const MenuResId = () => {
 
   // State cho chỉnh sửa giá
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editFoodId, setEditFoodId] = useState(null);
+  const [editItemId, setEditItemId] = useState(null); // Thay editFoodId bằng editItemId để lưu id (32)
   const [newPrice, setNewPrice] = useState(null);
 
   useEffect(() => {
@@ -91,11 +91,11 @@ const MenuResId = () => {
 
       const response = await api.post("/restaurant-menu-items", payload);
       const newItem = {
-        ...response.data.data, // Giả sử API trả về dữ liệu món ăn vừa thêm
+        ...response.data.data,
         foodName: foodList.find((food) => food.foodId === selectedFood)?.name,
         categoryName: foodList.find((food) => food.foodId === selectedFood)
           ?.categoryName,
-        available: true, // Giả định mặc định là còn hàng
+        available: true,
       };
       setMenuItems((prev) => [...prev, newItem]);
       message.success("Đã thêm vào menu thành công!");
@@ -109,16 +109,16 @@ const MenuResId = () => {
     }
   };
 
-  // Mở modal chỉnh sửa giá
-  const openEditModal = (foodId, currentPrice) => {
-    setEditFoodId(foodId);
+  // Mở modal chỉnh sửa giá, dùng id thay vì foodId
+  const openEditModal = (itemId, currentPrice) => {
+    setEditItemId(itemId); // Lưu id (32) thay vì foodId (5)
     setNewPrice(currentPrice);
     setEditModalOpen(true);
   };
 
   // Cập nhật giá món ăn
   const updatePrice = async () => {
-    if (!editFoodId || !newPrice || newPrice <= 0) {
+    if (!editItemId || !newPrice || newPrice <= 0) {
       message.warning("Vui lòng nhập giá hợp lệ!");
       return;
     }
@@ -139,35 +139,44 @@ const MenuResId = () => {
 
       const restaurantMenuId = menuResponse.data.data[0].id;
       console.log("restaurantMenuId", restaurantMenuId);
+
+      // Tìm menuItem dựa trên editItemId (id = 32)
+      const menuItem = menuItems.find((item) => item.id === editItemId);
+      if (!menuItem) {
+        message.error("Lỗi: Không tìm thấy món ăn trong menu.");
+        return;
+      }
+
       const payload = {
         restaurantMenuId: Number(restaurantMenuId),
-        foodId: Number(editFoodId),
         price: Number(newPrice),
+        isAvailable: menuItem.available,
       };
+      console.log("payload", payload);
 
-      const response = await api.post(
-        `/restaurant-menu-items/{$foodId}`,
+      const response = await api.put(
+        `/restaurant-menu-items/${menuItem.id}`, // Dùng id (32)
         payload
       );
       console.log("response", response.data.data);
+
       const updatedItem = {
-        ...response.data.data, // Giả sử API trả về dữ liệu món ăn vừa cập nhật
-        foodName: menuItems.find((item) => item.foodId === editFoodId)
-          ?.foodName,
-        categoryName: menuItems.find((item) => item.foodId === editFoodId)
-          ?.categoryName,
-        available: menuItems.find((item) => item.foodId === editFoodId)
-          ?.available,
+        ...response.data.data,
+        foodName: menuItem.foodName,
+        categoryName: menuItem.categoryName,
+        available: menuItem.available,
       };
-      setMenuItems((prev) =>
-        prev.map((item) => (item.foodId === editFoodId ? updatedItem : item))
+      setMenuItems(
+        (prev) =>
+          prev.map((item) => (item.id === editItemId ? updatedItem : item)) // Cập nhật dựa trên id
       );
       message.success("Cập nhật giá thành công!");
       setEditModalOpen(false);
-      setEditFoodId(null);
+      setEditItemId(null);
       setNewPrice(null);
     } catch (error) {
       message.error(error.response?.data?.message || "Lỗi khi cập nhật giá!");
+      console.error("Lỗi API:", error.response?.data);
     } finally {
       setLoading((prev) => ({ ...prev, submit: false }));
     }
@@ -216,7 +225,7 @@ const MenuResId = () => {
             title="Hành động"
             render={(record) => (
               <Button
-                onClick={() => openEditModal(record.foodId, record.price)}
+                onClick={() => openEditModal(record.id, record.price)} // Dùng record.id (32) thay vì record.foodId (5)
               >
                 Chỉnh Sửa Giá
               </Button>
@@ -232,7 +241,7 @@ const MenuResId = () => {
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
         onOk={addToMenu}
-        confirmLoading={loading.submit} // Chỉ loading nút OK
+        confirmLoading={loading.submit}
       >
         <Select
           style={{ width: "100%" }}
@@ -261,7 +270,7 @@ const MenuResId = () => {
         open={editModalOpen}
         onCancel={() => setEditModalOpen(false)}
         onOk={updatePrice}
-        confirmLoading={loading.submit} // Chỉ loading nút OK
+        confirmLoading={loading.submit}
       >
         <InputNumber
           min={0}
