@@ -16,7 +16,10 @@ import { selectUser } from "../../redux/features/userSlice";
 function CreateAccount() {
   const [form] = Form.useForm();
   const [editingUser, setEditingUser] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState({
+    table: true, // Loading cho bảng khi fetch lần đầu
+    submit: false, // Loading cho nút OK trong modal
+  });
   const [users, setUsers] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const user = useSelector(selectUser);
@@ -26,7 +29,7 @@ function CreateAccount() {
   }, []);
 
   const fetchUsers = async () => {
-    setLoading(true);
+    setLoading((prev) => ({ ...prev, table: true }));
     try {
       const response = await api.get("user/get/all");
       setUsers(response.data.data);
@@ -34,11 +37,12 @@ function CreateAccount() {
       message.error("Failed to fetch users");
       console.error("Error fetching users:", error);
     } finally {
-      setLoading(false);
+      setLoading((prev) => ({ ...prev, table: false }));
     }
   };
 
   const handleAddOrEditTable = async (values) => {
+    setLoading((prev) => ({ ...prev, submit: true }));
     try {
       const payload = {
         user_id: editingUser ? editingUser.user_id : 0,
@@ -51,23 +55,28 @@ function CreateAccount() {
       };
 
       if (editingUser) {
-        await api.put(`/user/${editingUser.user_id}`, payload);
+        const response = await api.put(`/user/${editingUser.user_id}`, payload);
+        setUsers((prev) =>
+          prev.map((item) =>
+            item.user_id === editingUser.user_id ? response.data.data : item
+          )
+        );
         message.success("Cập nhật tài khoản thành công!");
-        alert("cập tài khoản thành công ");
       } else {
-        await api.post("/user/create", payload);
+        const response = await api.post("/user/create", payload);
+        setUsers((prev) => [...prev, response.data.data]);
         message.success("Thêm tài khoản thành công!");
-        alert("thêm tài khoản thành công ");
       }
 
       setModalVisible(false);
       form.resetFields();
-      fetchUsers();
     } catch (error) {
       console.error("Lỗi API:", error);
       message.error(
         error.response?.data?.message || "Lỗi khi xử lý tài khoản!"
       );
+    } finally {
+      setLoading((prev) => ({ ...prev, submit: false }));
     }
   };
 
@@ -82,18 +91,20 @@ function CreateAccount() {
       });
     }
   };
-  console.log("User từ Redux:", user);
-  console.log("restaurantId:", user?.restaurantId);
 
   const handleDeleteUsers = async (user_id) => {
+    setLoading((prev) => ({ ...prev, table: true }));
     try {
       await api.delete(`/user/delete/${user_id}`);
+      setUsers((prev) => prev.filter((item) => item.user_id !== user_id));
       message.success("Xóa user thành công!");
-      fetchUsers();
     } catch (error) {
-      message.error("Lỗi khi xóa useruser");
+      message.error("Lỗi khi xóa user");
+    } finally {
+      setLoading((prev) => ({ ...prev, table: false }));
     }
   };
+
   const columns = [
     { title: "ID", dataIndex: "name", key: "name" },
     { title: "Email", dataIndex: "email", key: "email" },
@@ -113,7 +124,7 @@ function CreateAccount() {
             title="Bạn có chắc chắn?"
             onConfirm={() => handleDeleteUsers(record.user_id)}
           >
-            <Button type="primary" danger>
+            <Button type="primary" danger loading={loading.table}>
               Xóa
             </Button>
           </Popconfirm>
@@ -124,20 +135,25 @@ function CreateAccount() {
 
   return (
     <>
-      <Button type="primary" onClick={() => openModal()} style={{ marginBottom: 10}}>
+      <Button
+        type="primary"
+        onClick={() => openModal()}
+        style={{ marginBottom: 10 }}
+      >
         Thêm Tài Khoản
       </Button>
       <Table
         dataSource={users}
         columns={columns}
-        rowKey="id"
-        loading={loading}
+        rowKey="user_id" // Sửa rowKey thành "user_id" để khớp với dữ liệu
+        loading={loading.table} // Chỉ loading bảng khi fetch hoặc xóa
       />
       <Modal
-        title={editingUser ? "Sửa bàn ăn" : "Thêm bàn ăn"}
+        title={editingUser ? "Sửa tài khoản" : "Thêm tài khoản"}
         open={modalVisible}
         onCancel={() => setModalVisible(false)}
         onOk={() => form.submit()}
+        confirmLoading={loading.submit} // Chỉ loading nút OK
       >
         <Form form={form} layout="vertical" onFinish={handleAddOrEditTable}>
           <Form.Item
@@ -164,7 +180,12 @@ function CreateAccount() {
           <Form.Item
             name="password"
             label="Mật khẩu"
-            rules={[{ required: true, message: "Nhập mật khẩu!" }]}
+            rules={[
+              {
+                required: !editingUser,
+                message: "Nhập mật khẩu!",
+              },
+            ]}
           >
             <Input.Password />
           </Form.Item>

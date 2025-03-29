@@ -18,7 +18,10 @@ const { Option } = Select;
 
 function CreateTable() {
   const [tables, setTables] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState({
+    table: true, // Loading cho bảng khi fetch lần đầu
+    submit: false, // Loading cho nút OK trong modal
+  });
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTable, setEditingTable] = useState(null);
   const [form] = Form.useForm();
@@ -29,7 +32,7 @@ function CreateTable() {
   }, []);
 
   const fetchTables = async () => {
-    setLoading(true);
+    setLoading((prev) => ({ ...prev, table: true }));
     try {
       const res = await api.get(`dining_table/restaurant/${user.restaurantId}`);
       if (res.status === 200) {
@@ -41,38 +44,52 @@ function CreateTable() {
     } catch (error) {
       message.error("Lỗi kết nối API!");
     } finally {
-      setLoading(false);
+      setLoading((prev) => ({ ...prev, table: false }));
     }
   };
 
   const handleAddOrEditTable = async (values) => {
+    setLoading((prev) => ({ ...prev, submit: true }));
     try {
       const payload = {
         status: values.status,
         restaurantId: user?.restaurantId,
       };
       if (editingTable) {
-        await api.put(`/dining_table/${editingTable.id}`, values);
+        const response = await api.put(
+          `/dining_table/${editingTable.id}`,
+          values
+        );
+        setTables((prev) =>
+          prev.map((item) =>
+            item.id === editingTable.id ? response.data.data : item
+          )
+        );
         message.success("Cập nhật bàn ăn thành công!");
       } else {
-        await api.post("/dining_table", payload);
+        const response = await api.post("/dining_table", payload);
+        setTables((prev) => [...prev, response.data.data]);
         message.success("Thêm bàn ăn thành công!");
       }
       setModalVisible(false);
       form.resetFields();
-      fetchTables();
     } catch (error) {
       message.error("Lỗi khi xử lý bàn ăn!");
+    } finally {
+      setLoading((prev) => ({ ...prev, submit: false }));
     }
   };
 
   const handleDeleteTable = async (id) => {
+    setLoading((prev) => ({ ...prev, table: true }));
     try {
       await api.delete(`/dining_table/${id}`);
+      setTables((prev) => prev.filter((item) => item.id !== id));
       message.success("Xóa bàn ăn thành công!");
-      fetchTables();
     } catch (error) {
       message.error("Lỗi khi xóa bàn ăn!");
+    } finally {
+      setLoading((prev) => ({ ...prev, table: false }));
     }
   };
 
@@ -110,7 +127,7 @@ function CreateTable() {
             title="Bạn có chắc chắn?"
             onConfirm={() => handleDeleteTable(record.id)}
           >
-            <Button danger type="primary">
+            <Button danger type="primary" loading={loading.table}>
               Xóa
             </Button>
           </Popconfirm>
@@ -121,14 +138,18 @@ function CreateTable() {
 
   return (
     <>
-      <Button type="primary" onClick={() => openModal()} style={{ marginBottom: 10}}>
+      <Button
+        type="primary"
+        onClick={() => openModal()}
+        style={{ marginBottom: 10 }}
+      >
         Thêm bàn ăn
       </Button>
       <Table
         dataSource={tables}
         columns={columns}
         rowKey="id"
-        loading={loading}
+        loading={loading.table} // Chỉ loading bảng khi fetch hoặc xóa
       />
 
       <Modal
@@ -136,25 +157,15 @@ function CreateTable() {
         open={modalVisible}
         onCancel={() => setModalVisible(false)}
         onOk={() => form.submit()}
+        confirmLoading={loading.submit} // Chỉ loading nút OK
       >
         <Form form={form} layout="vertical" onFinish={handleAddOrEditTable}>
-          {/* <Form.Item
-            name="qrCode"
-            label="QR Code"
-            rules={[{ required: true, message: "Nhập QR Code!" }]}
-          >
-            <Input />
-          </Form.Item> */}
-
           <Form.Item
             name="status"
             label="Trạng thái"
             rules={[{ required: true, message: "Chọn trạng thái!" }]}
           >
             <Input value="AVAILABLE" disabled />
-            {/* <Select>
-              <Option value="AVAILABLE">AVAILABLE</Option>
-            </Select> */}
           </Form.Item>
 
           <Form.Item label="Mã nhà hàng">

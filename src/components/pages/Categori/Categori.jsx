@@ -14,17 +14,19 @@ import React, { useEffect, useState } from "react";
 import api from "../../config/axios";
 
 function CategoriManagement() {
-  const [Categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [openModal, setOpenModal] = useState(false);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState({
+    table: true, // Loading cho bảng khi fetch lần đầu
+    submit: false, // Loading cho nút OK trong modal
+  });
   const [form] = useForm();
-  const [previewOpen, setPreviewOpen] = useState(false);
 
   const fetchCategories = async () => {
     try {
-      setLoading(true);
+      setLoading((prev) => ({ ...prev, table: true }));
       const res = await api.get("/category");
       if (res.data.statusCode === 200 && res.data.data) {
         setCategories(res.data.data);
@@ -35,22 +37,25 @@ function CategoriManagement() {
     } catch (error) {
       console.error("Lỗi khi lấy danh mục:", error);
       message.error("Không thể lấy danh mục");
+    } finally {
+      setLoading((prev) => ({ ...prev, table: false }));
     }
-    setLoading(false);
   };
 
   const handleDeleteCategory = async (categoryId) => {
     try {
-      setLoading(true);
+      setLoading((prev) => ({ ...prev, table: true }));
       await api.delete(`/category/${categoryId}`);
+      setCategories((prev) =>
+        prev.filter((item) => item.category_id !== categoryId)
+      );
       message.success("Xóa danh mục thành công!");
-      alert("Xóa danh mục thành công!");
-      fetchCategories();
     } catch (error) {
       console.error("Lỗi khi xóa danh mục:", error);
       message.error("Xóa danh mục thất bại");
+    } finally {
+      setLoading((prev) => ({ ...prev, table: false }));
     }
-    setLoading(false);
   };
 
   const showAddModal = () => {
@@ -58,22 +63,6 @@ function CategoriManagement() {
     setEditingCategory(null);
     form.resetFields();
     setOpenModal(true);
-  };
-
-  const handleAddCategory = async () => {
-    try {
-      setLoading(true);
-      const values = await form.validateFields();
-      await api.post("/category", values);
-      message.success("Thêm danh mục thành công!");
-      setOpenModal(false);
-      fetchCategories();
-    } catch (error) {
-      console.error("Lỗi khi thêm danh mục:", error);
-      message.error("Thêm danh mục thất bại");
-    } finally {
-      setLoading(false);
-    }
   };
 
   const showEditModal = (category) => {
@@ -85,17 +74,48 @@ function CategoriManagement() {
     setOpenModal(true);
   };
 
+  const handleAddCategory = async () => {
+    try {
+      setLoading((prev) => ({ ...prev, submit: true }));
+      const values = await form.validateFields();
+      const response = await api.post("/category", values);
+      const newCategory = response.data.data; // Giả sử API trả về danh mục mới
+      setCategories((prev) => [...prev, newCategory]);
+      message.success("Thêm danh mục thành công!");
+      setOpenModal(false);
+      form.resetFields();
+    } catch (error) {
+      console.error("Lỗi khi thêm danh mục:", error);
+      message.error("Thêm danh mục thất bại");
+    } finally {
+      setLoading((prev) => ({ ...prev, submit: false }));
+    }
+  };
+
   const handleUpdateCategory = async () => {
     try {
-      setLoading(true);
+      setLoading((prev) => ({ ...prev, submit: true }));
       const values = await form.validateFields();
-      await api.put(`/category/${editingCategory.category_id}`, values);
+      const response = await api.put(
+        `/category/${editingCategory.category_id}`,
+        values
+      );
+      const updatedCategory = response.data.data; // Giả sử API trả về danh mục đã cập nhật
+      setCategories((prev) =>
+        prev.map((item) =>
+          item.category_id === editingCategory.category_id
+            ? updatedCategory
+            : item
+        )
+      );
       message.success("Cập nhật danh mục thành công!");
       setOpenModal(false);
-      fetchCategories();
+      form.resetFields();
     } catch (error) {
       console.error("Lỗi khi cập nhật danh mục:", error);
       message.error("Cập nhật danh mục thất bại");
+    } finally {
+      setLoading((prev) => ({ ...prev, submit: false }));
     }
   };
 
@@ -119,7 +139,6 @@ function CategoriManagement() {
   }, []);
 
   const columns = [
-    // { title: "ID", dataIndex: "category_id", key: "category_id" },
     { title: "Name", dataIndex: "name", key: "name" },
     {
       title: "Action",
@@ -139,9 +158,13 @@ function CategoriManagement() {
               title="Xóa danh mục"
               description="Bạn có chắc chắn muốn xóa danh mục này không?"
               onConfirm={() => handleDeleteCategory(record.category_id)}
-              loading={loading}
             >
-              <Button type="primary" danger icon={<DeleteOutlined />}>
+              <Button
+                type="primary"
+                danger
+                icon={<DeleteOutlined />}
+                loading={loading.table} // Loading cho nút Delete khi xóa
+              >
                 Delete
               </Button>
             </Popconfirm>
@@ -155,19 +178,23 @@ function CategoriManagement() {
     <>
       <div style={{ marginBottom: 16 }}>
         <Button type="primary" icon={<PlusOutlined />} onClick={showAddModal}>
-          thêm món mới
+          Thêm danh mục mới
         </Button>
       </div>
 
-      <Table dataSource={Categories} columns={columns} rowKey="category_id" />
+      <Table
+        dataSource={categories}
+        columns={columns}
+        rowKey="category_id"
+        loading={loading.table} // Loading cho bảng khi fetch lần đầu hoặc xóa
+      />
 
       <Modal
         title={isAddingNew ? "Thêm danh mục mới" : "Cập nhật danh mục"}
-        block
         open={openModal}
         onOk={handleModalOk}
         onCancel={handleCancel}
-        confirmLoading={loading}
+        confirmLoading={loading.submit} // Chỉ loading cho nút OK
       >
         <Form form={form} layout="vertical">
           <Form.Item

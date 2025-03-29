@@ -30,6 +30,7 @@ const CreateMenu = () => {
       const response = await api.get("/food");
       if (response?.data?.statusCode === 200) {
         setFoods(response.data.data);
+        console.log("foods", response.data.data);
       } else {
         message.error("Không thể lấy danh sách món ăn");
       }
