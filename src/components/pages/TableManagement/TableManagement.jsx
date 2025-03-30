@@ -257,7 +257,7 @@ const TableManagement = () => {
       console.log("Order ID:", orderId);
 
       // Kiểm tra và chuẩn hóa amount
-      const paymentAmount = Number(totalAmountFromApi);
+      const paymentAmount = Number(totalAmountFromApi) * 100;
       console.log(
         "Total amount trước khi gửi:",
         totalAmountFromApi,
