@@ -38,7 +38,6 @@ const TableManagement = () => {
   const [tableList, setTableList] = useState([]);
   const [loading, setLoading] = useState({
     table: false, // Loading cho danh sách bàn
-    orderDetails: false, // Loading cho Chi tiết đơn hàng
     submit: false, // Loading cho các action như thanh toán, xác nhận
   });
   const [selectedTable, setSelectedTable] = useState(null);
@@ -119,7 +118,6 @@ const TableManagement = () => {
   };
 
   const fetchMenuItems = async (diningTableId) => {
-    setLoading((prev) => ({ ...prev, orderDetails: true }));
     try {
       const res = await api.get(`/order/dining-table/${diningTableId}`);
       if (res.status === 200 && res.data.data && res.data.data.orderItems) {
@@ -137,8 +135,6 @@ const TableManagement = () => {
       console.error("Lỗi khi tải danh sách món ăn:", error);
       setMenuItems([]);
       setTotalAmountFromApi(0);
-    } finally {
-      setLoading((prev) => ({ ...prev, orderDetails: false }));
     }
   };
 
@@ -267,7 +263,7 @@ const TableManagement = () => {
         return;
       }
       const orderId = orderRes.data.data.id;
-      const paymentAmount = Number(totalAmountFromApi) * 100;
+      const paymentAmount = Number(totalAmountFromApi) % 100;
       if (isNaN(paymentAmount) || paymentAmount <= 0) {
         message.error("Tổng tiền không hợp lệ hoặc bằng 0!");
         return;
@@ -284,6 +280,7 @@ const TableManagement = () => {
         }
         if (typeof paymentUrl === "string" && paymentUrl.startsWith("http")) {
           window.open(paymentUrl, "_blank");
+          console.log("Payment URL:", paymentUrl);
           message.success("Đang chuyển hướng đến VNPay...");
         } else {
           message.error("URL thanh toán không hợp lệ!");
@@ -358,7 +355,7 @@ const TableManagement = () => {
           id: item.id,
           menuItemId: item.menuItemId,
           quantity: item.quantity,
-          price: item.price,
+          // price: item.price,
           menuItemName: item.menuItemName,
         })),
       };
@@ -639,23 +636,13 @@ const TableManagement = () => {
                 className="order-details-card"
                 bordered={false}
                 style={{ borderRadius: 8, height: "100%" }}
-                extra={loading.orderDetails ? <Spin size="small" /> : null}
               >
                 {selectedTable && (
                   <div style={{ marginBottom: 24 }}>
                     <Title level={5} style={{ marginBottom: 12 }}>
                       Danh sách món ăn
                     </Title>
-                    {loading.orderDetails ? (
-                      <div
-                        style={{
-                          textAlign: "center",
-                          padding: "40px 0",
-                        }}
-                      >
-                        <Spin tip="Đang tải danh sách món ăn..." />
-                      </div>
-                    ) : menuItems.length > 0 ? (
+                    {menuItems.length > 0 ? (
                       <div
                         style={{
                           background: "#fafafa",
