@@ -348,18 +348,22 @@ const TableManagement = () => {
         return;
       }
       const orderId = orderRes.data.data.id;
+      const menuItemName = orderRes.data.data.orderItems;
       const payload = {
         id: orderId,
         diningTableId: selectedTable.id,
         orderItems: editOrderItems.map((item) => ({
-          id: item.id,
-          menuItemId: item.menuItemId,
-          quantity: item.quantity,
+          // id: item.id,
+          // menuItemId: item.menuItemId,
+          // quantity: item.quantity,
           price: item.price,
-          menuItemName: item.menuItemName,
+          // menuItemName: item.menuItemName,
         })),
       };
-      const res = await api.put(`/order/${orderId}`, payload);
+      const res = await api.put(
+        `/order/${orderId}/items/${menuItemName}`,
+        payload
+      );
       if (res.status === 200) {
         message.success("Chỉnh sửa đơn hàng thành công!");
         setEditOrderModalVisible(false);
