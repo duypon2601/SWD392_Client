@@ -38,6 +38,7 @@ const TableManagement = () => {
   const [tableList, setTableList] = useState([]);
   const [loading, setLoading] = useState({
     table: false, // Loading cho danh sách bàn
+    orderDetails: false, // Loading cho Chi tiết đơn hàng
     submit: false, // Loading cho các action như thanh toán, xác nhận
   });
   const [selectedTable, setSelectedTable] = useState(null);
@@ -118,6 +119,7 @@ const TableManagement = () => {
   };
 
   const fetchMenuItems = async (diningTableId) => {
+    setLoading((prev) => ({ ...prev, orderDetails: true }));
     try {
       const res = await api.get(`/order/dining-table/${diningTableId}`);
       if (res.status === 200 && res.data.data && res.data.data.orderItems) {
@@ -135,6 +137,8 @@ const TableManagement = () => {
       console.error("Lỗi khi tải danh sách món ăn:", error);
       setMenuItems([]);
       setTotalAmountFromApi(0);
+    } finally {
+      setLoading((prev) => ({ ...prev, orderDetails: false }));
     }
   };
 
@@ -263,7 +267,7 @@ const TableManagement = () => {
         return;
       }
       const orderId = orderRes.data.data.id;
-      const paymentAmount = Number(totalAmountFromApi) % 100;
+      const paymentAmount = Number(totalAmountFromApi) * 100;
       if (isNaN(paymentAmount) || paymentAmount <= 0) {
         message.error("Tổng tiền không hợp lệ hoặc bằng 0!");
         return;
@@ -280,7 +284,6 @@ const TableManagement = () => {
         }
         if (typeof paymentUrl === "string" && paymentUrl.startsWith("http")) {
           window.open(paymentUrl, "_blank");
-          console.log("Payment URL:", paymentUrl);
           message.success("Đang chuyển hướng đến VNPay...");
         } else {
           message.error("URL thanh toán không hợp lệ!");
@@ -348,45 +351,27 @@ const TableManagement = () => {
         return;
       }
       const orderId = orderRes.data.data.id;
-
-      // Lặp qua từng món trong editOrderItems để cập nhật số lượng
-      for (const item of editOrderItems) {
-        if (!item.menuItemId || typeof item.quantity !== "number") {
-          message.error(
-            `Dữ liệu không hợp lệ cho món ${
-              item.menuItemName || "chưa xác định"
-            }`
-          );
-          continue;
-        }
-
-        const payload = {
-          quantity: item.quantity, // Chỉ gửi số lượng
-        };
-
-        const res = await api.put(
-          `/order/${orderId}/items/${item.menuItemId}`, // Gọi API riêng cho từng menuItemId
-          payload
-        );
-
-        if (res.status === 200 && res.data.statusCode === 200) {
-          console.log(
-            `Cập nhật thành công món ${item.menuItemName}:`,
-            res.data.data
-          );
-        } else {
-          throw new Error(
-            `Không thể cập nhật món ${item.menuItemName || item.menuItemId}`
-          );
-        }
+      const payload = {
+        id: orderId,
+        diningTableId: selectedTable.id,
+        orderItems: editOrderItems.map((item) => ({
+          id: item.id,
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+          price: item.price,
+          menuItemName: item.menuItemName,
+        })),
+      };
+      const res = await api.put(`/order/${orderId}`, payload);
+      if (res.status === 200) {
+        message.success("Chỉnh sửa đơn hàng thành công!");
+        setEditOrderModalVisible(false);
+        fetchMenuItems(selectedTable.id); // Cập nhật lại danh sách món ăn
+      } else {
+        message.error("Không thể chỉnh sửa đơn hàng!");
       }
-
-      message.success("Chỉnh sửa đơn hàng thành công!");
-      setEditOrderModalVisible(false);
-      fetchMenuItems(selectedTable.id); // Cập nhật lại danh sách món ăn
     } catch (error) {
       message.error("Lỗi khi chỉnh sửa đơn hàng: " + error.message);
-      console.error("Lỗi API:", error.response?.data || error);
     } finally {
       setLoading((prev) => ({ ...prev, submit: false }));
     }
@@ -654,13 +639,23 @@ const TableManagement = () => {
                 className="order-details-card"
                 bordered={false}
                 style={{ borderRadius: 8, height: "100%" }}
+                extra={loading.orderDetails ? <Spin size="small" /> : null}
               >
                 {selectedTable && (
                   <div style={{ marginBottom: 24 }}>
                     <Title level={5} style={{ marginBottom: 12 }}>
                       Danh sách món ăn
                     </Title>
-                    {menuItems.length > 0 ? (
+                    {loading.orderDetails ? (
+                      <div
+                        style={{
+                          textAlign: "center",
+                          padding: "40px 0",
+                        }}
+                      >
+                        <Spin tip="Đang tải danh sách món ăn..." />
+                      </div>
+                    ) : menuItems.length > 0 ? (
                       <div
                         style={{
                           background: "#fafafa",
