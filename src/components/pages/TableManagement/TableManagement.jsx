@@ -13,12 +13,9 @@ import {
   Empty,
   Divider,
   Popconfirm,
-  Modal,
-  InputNumber,
 } from "antd";
 import {
   ShoppingCartOutlined,
-  CoffeeOutlined,
   DollarOutlined,
   UserOutlined,
   LogoutOutlined,
@@ -37,8 +34,8 @@ const { Title, Text } = Typography;
 const TableManagement = () => {
   const [tableList, setTableList] = useState([]);
   const [loading, setLoading] = useState({
-    table: false, // Loading cho danh sách bàn
-    submit: false, // Loading cho các action như thanh toán, xác nhận
+    table: false,
+    submit: false,
   });
   const [selectedTable, setSelectedTable] = useState(null);
   const user = useSelector(selectUser);
@@ -51,8 +48,6 @@ const TableManagement = () => {
   const [totalAmountFromApi, setTotalAmountFromApi] = useState(0);
   const [billModalVisible, setBillModalVisible] = useState(false);
   const [billData, setBillData] = useState(null);
-  const [editOrderModalVisible, setEditOrderModalVisible] = useState(false);
-  const [editOrderItems, setEditOrderItems] = useState([]);
 
   const handleLogout = () => {
     setOrderLoading(true);
@@ -93,10 +88,10 @@ const TableManagement = () => {
       );
       if (res.status === 200 && res.data.data) {
         const formattedTables = res.data.data
-          .sort((a, b) => a.id - b.id) // Sắp xếp theo id tăng dần
+          .sort((a, b) => a.id - b.id)
           .map((table, index) => ({
             id: table.id,
-            name: `Bàn ${index + 1}`, // Đặt tên bàn theo thứ tự tăng dần
+            name: `Bàn ${index + 1}`,
             status: getStatusText(table.status),
             rawStatus: table.status,
           }));
@@ -250,45 +245,6 @@ const TableManagement = () => {
     }
   };
 
-  const handleSaveEditOrder = async () => {
-    if (!selectedTable) {
-      message.error("Vui lòng chọn bàn trước khi lưu!");
-      return;
-    }
-    setLoading((prev) => ({ ...prev, submit: true }));
-    try {
-      const orderRes = await api.get(`/order/dining-table/${selectedTable.id}`);
-      if (!orderRes.data.data || !orderRes.data.data.id) {
-        message.error("Không tìm thấy đơn hàng cho bàn này!");
-        return;
-      }
-      const orderId = orderRes.data.data.id;
-      const payload = {
-        id: orderId,
-        diningTableId: selectedTable.id,
-        orderItems: editOrderItems.map((item) => ({
-          id: item.id,
-          menuItemId: item.menuItemId,
-          quantity: item.quantity,
-          price: item.price,
-          menuItemName: item.menuItemName,
-        })),
-      };
-      const res = await api.put(`/order/${orderId}`, payload);
-      if (res.status === 200) {
-        message.success("Chỉnh sửa đơn hàng thành công!");
-        setEditOrderModalVisible(false);
-        fetchMenuItems(selectedTable.id); // Cập nhật lại danh sách món ăn
-      } else {
-        message.error("Không thể chỉnh sửa đơn hàng!");
-      }
-    } catch (error) {
-      message.error("Lỗi khi chỉnh sửa đơn hàng: " + error.message);
-    } finally {
-      setLoading((prev) => ({ ...prev, submit: false }));
-    }
-  };
-
   const handleViewBill = async () => {
     if (!selectedTable) {
       message.error("Vui lòng chọn bàn trước khi xem bill!");
@@ -311,72 +267,6 @@ const TableManagement = () => {
       }
     } catch (error) {
       message.error("Lỗi khi tải bill: " + error.message);
-    } finally {
-      setLoading((prev) => ({ ...prev, submit: false }));
-    }
-  };
-
-  const handleEditOrder = () => {
-    if (!selectedTable) {
-      message.error("Vui lòng chọn bàn trước khi chỉnh sửa!");
-      return;
-    }
-    setEditOrderItems(menuItems.map((item) => ({ ...item }))); // Sao chép menuItems để chỉnh sửa
-    setEditOrderModalVisible(true);
-  };
-
-  const handleSaveEditOrder = async () => {
-    if (!selectedTable) {
-      message.error("Vui lòng chọn bàn trước khi lưu!");
-      return;
-    }
-    setLoading((prev) => ({ ...prev, submit: true }));
-    try {
-      const orderRes = await api.get(`/order/dining-table/${selectedTable.id}`);
-      if (!orderRes.data.data || !orderRes.data.data.id) {
-        message.error("Không tìm thấy đơn hàng cho bàn này!");
-        return;
-      }
-      const orderId = orderRes.data.data.id;
-
-      // Lặp qua từng món trong editOrderItems để cập nhật số lượng
-      for (const item of editOrderItems) {
-        if (!item.menuItemId || typeof item.quantity !== "number") {
-          message.error(
-            `Dữ liệu không hợp lệ cho món ${
-              item.menuItemName || "chưa xác định"
-            }`
-          );
-          continue;
-        }
-
-        const payload = {
-          quantity: item.quantity, // Chỉ gửi số lượng
-        };
-
-        const res = await api.put(
-          `/order/${orderId}/items/${item.menuItemId}`, // Gọi API riêng cho từng menuItemId
-          payload
-        );
-
-        if (res.status === 200 && res.data.statusCode === 200) {
-          console.log(
-            `Cập nhật thành công món ${item.menuItemName}:`,
-            res.data.data
-          );
-        } else {
-          throw new Error(
-            `Không thể cập nhật món ${item.menuItemName || item.menuItemId}`
-          );
-        }
-      }
-
-      message.success("Chỉnh sửa đơn hàng thành công!");
-      setEditOrderModalVisible(false);
-      fetchMenuItems(selectedTable.id); // Cập nhật lại danh sách món ăn
-    } catch (error) {
-      message.error("Lỗi khi chỉnh sửa đơn hàng: " + error.message);
-      console.error("Lỗi API:", error.response?.data || error);
     } finally {
       setLoading((prev) => ({ ...prev, submit: false }));
     }
@@ -699,13 +589,6 @@ const TableManagement = () => {
                             {totalAmount.toLocaleString()}đ
                           </Text>
                         </div>
-                        <Button
-                          type="link"
-                          onClick={handleEditOrder}
-                          style={{ marginTop: 12 }}
-                        >
-                          Chỉnh sửa đơn hàng
-                        </Button>
                       </div>
                     ) : (
                       <Empty
@@ -872,33 +755,6 @@ const TableManagement = () => {
         ) : (
           <Empty description="Không có dữ liệu bill" />
         )}
-      </Modal>
-
-      {/* Modal Chỉnh sửa đơn hàng */}
-      <Modal
-        title="Chỉnh sửa đơn hàng"
-        open={editOrderModalVisible}
-        onCancel={() => setEditOrderModalVisible(false)}
-        onOk={handleSaveEditOrder}
-        confirmLoading={loading.submit}
-      >
-        {editOrderItems.map((item, index) => (
-          <div key={item.id} style={{ marginBottom: 16 }}>
-            <Text strong>{item.menuItemName}</Text>
-            <InputNumber
-              min={0}
-              value={item.quantity}
-              onChange={(value) =>
-                setEditOrderItems((prev) =>
-                  prev.map((i, idx) =>
-                    idx === index ? { ...i, quantity: value } : i
-                  )
-                )
-              }
-              style={{ marginLeft: 16 }}
-            />
-          </div>
-        ))}
       </Modal>
     </Layout>
   );
