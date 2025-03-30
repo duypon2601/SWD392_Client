@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Table, message, Spin, Button, InputNumber, Modal, Select } from "antd";
+import {
+  Table,
+  message,
+  Spin,
+  Button,
+  InputNumber,
+  Modal,
+  Select,
+  Popconfirm,
+} from "antd";
 import api from "../../config/axios";
 import { useSelector } from "react-redux";
 import { selectUser } from "../../redux/features/userSlice";
@@ -20,7 +29,7 @@ const MenuResId = () => {
 
   // State cho chỉnh sửa giá
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editItemId, setEditItemId] = useState(null); // Thay editFoodId bằng editItemId để lưu id (32)
+  const [editItemId, setEditItemId] = useState(null);
   const [newPrice, setNewPrice] = useState(null);
 
   useEffect(() => {
@@ -109,9 +118,9 @@ const MenuResId = () => {
     }
   };
 
-  // Mở modal chỉnh sửa giá, dùng id thay vì foodId
+  // Mở modal chỉnh sửa giá
   const openEditModal = (itemId, currentPrice) => {
-    setEditItemId(itemId); // Lưu id (32) thay vì foodId (5)
+    setEditItemId(itemId);
     setNewPrice(currentPrice);
     setEditModalOpen(true);
   };
@@ -138,9 +147,6 @@ const MenuResId = () => {
       }
 
       const restaurantMenuId = menuResponse.data.data[0].id;
-      console.log("restaurantMenuId", restaurantMenuId);
-
-      // Tìm menuItem dựa trên editItemId (id = 32)
       const menuItem = menuItems.find((item) => item.id === editItemId);
       if (!menuItem) {
         message.error("Lỗi: Không tìm thấy món ăn trong menu.");
@@ -152,23 +158,19 @@ const MenuResId = () => {
         price: Number(newPrice),
         isAvailable: menuItem.available,
       };
-      console.log("payload", payload);
 
       const response = await api.put(
-        `/restaurant-menu-items/${menuItem.id}`, // Dùng id (32)
+        `/restaurant-menu-items/${menuItem.id}`,
         payload
       );
-      console.log("response", response.data.data);
-
       const updatedItem = {
         ...response.data.data,
         foodName: menuItem.foodName,
         categoryName: menuItem.categoryName,
         available: menuItem.available,
       };
-      setMenuItems(
-        (prev) =>
-          prev.map((item) => (item.id === editItemId ? updatedItem : item)) // Cập nhật dựa trên id
+      setMenuItems((prev) =>
+        prev.map((item) => (item.id === editItemId ? updatedItem : item))
       );
       message.success("Cập nhật giá thành công!");
       setEditModalOpen(false);
@@ -176,6 +178,26 @@ const MenuResId = () => {
       setNewPrice(null);
     } catch (error) {
       message.error(error.response?.data?.message || "Lỗi khi cập nhật giá!");
+      console.error("Lỗi API:", error.response?.data);
+    } finally {
+      setLoading((prev) => ({ ...prev, submit: false }));
+    }
+  };
+
+  // Xóa món ăn khỏi menu
+  const deleteMenuItem = async (itemId) => {
+    setLoading((prev) => ({ ...prev, submit: true }));
+    try {
+      const response = await api.delete(`/restaurant-menu-items/${itemId}`);
+      if (response.status === 200 || response.status === 204) {
+        // 204 là mã thường dùng cho DELETE thành công
+        setMenuItems((prev) => prev.filter((item) => item.id !== itemId));
+        message.success("Đã xóa món ăn khỏi menu thành công!");
+      } else {
+        message.error("Không thể xóa món ăn!");
+      }
+    } catch (error) {
+      message.error(error.response?.data?.message || "Lỗi khi xóa món ăn!");
       console.error("Lỗi API:", error.response?.data);
     } finally {
       setLoading((prev) => ({ ...prev, submit: false }));
@@ -224,11 +246,24 @@ const MenuResId = () => {
           <Table.Column
             title="Hành động"
             render={(record) => (
-              <Button
-                onClick={() => openEditModal(record.id, record.price)} // Dùng record.id (32) thay vì record.foodId (5)
-              >
-                Chỉnh Sửa Giá
-              </Button>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <Button
+                  type="primary" // Thêm màu xanh cho nút chỉnh sửa
+                  onClick={() => openEditModal(record.id, record.price)}
+                >
+                  Chỉnh Sửa Giá
+                </Button>
+                <Popconfirm
+                  title="Bạn có chắc chắn muốn xóa món này khỏi menu?"
+                  onConfirm={() => deleteMenuItem(record.id)}
+                  okText="Có"
+                  cancelText="Không"
+                >
+                  <Button danger loading={loading.submit} type="primary">
+                    Xóa
+                  </Button>
+                </Popconfirm>
+              </div>
             )}
             key="actions"
           />
