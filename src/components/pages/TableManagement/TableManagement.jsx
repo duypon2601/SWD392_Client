@@ -355,7 +355,7 @@ const TableManagement = () => {
           id: item.id,
           menuItemId: item.menuItemId,
           quantity: item.quantity,
-          // price: item.price,
+          price: item.price,
           menuItemName: item.menuItemName,
         })),
       };
