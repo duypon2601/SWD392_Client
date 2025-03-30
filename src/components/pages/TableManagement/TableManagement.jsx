@@ -263,7 +263,7 @@ const TableManagement = () => {
         return;
       }
       const orderId = orderRes.data.data.id;
-      const paymentAmount = Number(totalAmountFromApi);
+      const paymentAmount = Number(totalAmountFromApi) % 100;
       if (isNaN(paymentAmount) || paymentAmount <= 0) {
         message.error("Tổng tiền không hợp lệ hoặc bằng 0!");
         return;
@@ -355,7 +355,7 @@ const TableManagement = () => {
           id: item.id,
           menuItemId: item.menuItemId,
           quantity: item.quantity,
-          price: item.price,
+          // price: item.price,
           menuItemName: item.menuItemName,
         })),
       };
