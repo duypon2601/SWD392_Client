@@ -348,21 +348,36 @@ const TableManagement = () => {
         return;
       }
       const orderId = orderRes.data.data.id;
-      const menuItemId = orderRes.data.data.orderItems.map(
-        (item) => item.menuItemId
-      );
 
       // Lặp qua từng món trong editOrderItems để cập nhật số lượng
       for (const item of editOrderItems) {
+        if (!item.menuItemId || typeof item.quantity !== "number") {
+          message.error(
+            `Dữ liệu không hợp lệ cho món ${
+              item.menuItemName || "chưa xác định"
+            }`
+          );
+          continue; // Bỏ qua món này nếu dữ liệu không hợp lệ
+        }
+
         const payload = {
           quantity: item.quantity, // Chỉ gửi số lượng
         };
+
         const res = await api.put(
-          `/order/${orderId}/items/${menuItemId}`,
+          `/order/${orderId}/items/${item.menuItemId}`, // API với orderId và menuItemId
           payload
         );
-        if (res.status !== 200) {
-          throw new Error(`Không thể cập nhật món ${item.menuItemName}`);
+
+        if (res.status === 200 && res.data.statusCode === 200) {
+          console.log(
+            `Cập nhật thành công món ${item.menuItemName}:`,
+            res.data.data
+          );
+        } else {
+          throw new Error(
+            `Không thể cập nhật món ${item.menuItemName || item.menuItemId}`
+          );
         }
       }
 
@@ -371,6 +386,7 @@ const TableManagement = () => {
       fetchMenuItems(selectedTable.id); // Cập nhật lại danh sách món ăn
     } catch (error) {
       message.error("Lỗi khi chỉnh sửa đơn hàng: " + error.message);
+      console.error("Lỗi chi tiết:", error);
     } finally {
       setLoading((prev) => ({ ...prev, submit: false }));
     }
