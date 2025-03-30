@@ -348,29 +348,24 @@ const TableManagement = () => {
         return;
       }
       const orderId = orderRes.data.data.id;
-      const menuItemName = orderRes.data.data.orderItems;
-      const payload = {
-        id: orderId,
-        diningTableId: selectedTable.id,
-        orderItems: editOrderItems.map((item) => ({
-          // id: item.id,
-          // menuItemId: item.menuItemId,
-          // quantity: item.quantity,
-          price: item.price,
-          // menuItemName: item.menuItemName,
-        })),
-      };
-      const res = await api.put(
-        `/order/${orderId}/items/${menuItemName}`,
-        payload
-      );
-      if (res.status === 200) {
-        message.success("Chỉnh sửa đơn hàng thành công!");
-        setEditOrderModalVisible(false);
-        fetchMenuItems(selectedTable.id); // Cập nhật lại danh sách món ăn
-      } else {
-        message.error("Không thể chỉnh sửa đơn hàng!");
+
+      // Lặp qua từng món trong editOrderItems để cập nhật số lượng
+      for (const item of editOrderItems) {
+        const payload = {
+          quantity: item.quantity, // Chỉ gửi số lượng
+        };
+        const res = await api.put(
+          `/order/${orderId}/items/${item.menuItemId}`, 
+          payload
+        );
+        if (res.status !== 200) {
+          throw new Error(`Không thể cập nhật món ${item.menuItemName}`);
+        }
       }
+
+      message.success("Chỉnh sửa đơn hàng thành công!");
+      setEditOrderModalVisible(false);
+      fetchMenuItems(selectedTable.id); // Cập nhật lại danh sách món ăn
     } catch (error) {
       message.error("Lỗi khi chỉnh sửa đơn hàng: " + error.message);
     } finally {
