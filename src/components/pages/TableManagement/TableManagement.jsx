@@ -78,8 +78,9 @@ const TableManagement = () => {
   const fetchTableList = async () => {
     setLoading((prev) => ({ ...prev, table: true }));
     try {
+      console.log("user:", user); // Log để kiểm tra user object
       const res = await api.get(
-        `/dining_table/restaurant/${user.restaurantId}`
+        `/dining_table/restaurant/${user?.restaurantId}`
       );
       console.log("fetchTableList response:", res.data);
       if (res.status === 200 && res.data.data) {
@@ -101,6 +102,7 @@ const TableManagement = () => {
       }
     } catch (error) {
       message.error("Lỗi khi tải dữ liệu: " + error.message);
+      console.error("Lỗi fetchTableList:", error.response?.data || error);
     } finally {
       setLoading((prev) => ({ ...prev, table: false }));
     }
@@ -110,14 +112,18 @@ const TableManagement = () => {
     try {
       const res = await api.get(`/order/dining-table/${diningTableId}`);
       console.log("fetchMenuItems response:", res.data);
-      if (res.status === 200 && res.data.data && res.data.data.orderItems) {
-        setMenuItems(res.data.data.orderItems);
-        const total = res.data.data.orderItems.reduce(
+      if (res.status === 200 && res.data.data) {
+        const orderItems = res.data.data.orderItems || [];
+        console.log("orderItems:", orderItems);
+        setMenuItems(orderItems);
+        const total = orderItems.reduce(
           (sum, item) => sum + (item.price || 0),
           0
         );
+        console.log("Calculated totalAmountFromApi:", total);
         setTotalAmountFromApi(total);
       } else {
+        console.log("Không có orderItems, đặt totalAmountFromApi = 0");
         setMenuItems([]);
         setTotalAmountFromApi(0);
       }
@@ -269,10 +275,13 @@ const TableManagement = () => {
       const orderId = orderRes.data.data.id;
       console.log("Order ID:", orderId);
 
-      const paymentAmount = Number(totalAmountFromApi); // Không dùng % 100
-      console.log("Total amount gửi đi:", paymentAmount);
+      // Kiểm tra và log totalAmountFromApi trước khi gửi
+      console.log("totalAmountFromApi trước khi gửi:", totalAmountFromApi);
+      const paymentAmount = Number(totalAmountFromApi);
+      console.log("paymentAmount sau khi chuyển đổi:", paymentAmount);
       if (isNaN(paymentAmount) || paymentAmount <= 0) {
         message.error("Tổng tiền không hợp lệ hoặc bằng 0!");
+        console.log("Dữ liệu menuItems khi lỗi:", menuItems);
         return;
       }
 
