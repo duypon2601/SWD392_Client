@@ -250,50 +250,40 @@ const TableManagement = () => {
     }
   };
 
-  const handleVNPay = async () => {
+  const handleSaveEditOrder = async () => {
     if (!selectedTable) {
-      message.error("Vui lòng chọn bàn trước khi thanh toán!");
+      message.error("Vui lòng chọn bàn trước khi lưu!");
       return;
     }
     setLoading((prev) => ({ ...prev, submit: true }));
     try {
       const orderRes = await api.get(`/order/dining-table/${selectedTable.id}`);
-      if (!orderRes.data?.data || !orderRes.data.data.id) {
+      if (!orderRes.data.data || !orderRes.data.data.id) {
         message.error("Không tìm thấy đơn hàng cho bàn này!");
         return;
       }
       const orderId = orderRes.data.data.id;
-      const paymentAmount = Number(totalAmountFromApi) % 100;
-      if (isNaN(paymentAmount) || paymentAmount <= 0) {
-        message.error("Tổng tiền không hợp lệ hoặc bằng 0!");
-        return;
-      }
-      const paymentData = { amount: paymentAmount, orderId: orderId };
-      const createRes = await api.post("/payment/create", paymentData);
-      if (
-        (createRes.status === 200 || createRes.status === 201) &&
-        createRes.data
-      ) {
-        let paymentUrl = createRes.data;
-        if (typeof createRes.data === "object" && createRes.data.url) {
-          paymentUrl = createRes.data.url;
-        }
-        if (typeof paymentUrl === "string" && paymentUrl.startsWith("http")) {
-          window.open(paymentUrl, "_blank");
-          console.log("Payment URL:", paymentUrl);
-          message.success("Đang chuyển hướng đến VNPay...");
-        } else {
-          message.error("URL thanh toán không hợp lệ!");
-        }
+      const payload = {
+        id: orderId,
+        diningTableId: selectedTable.id,
+        orderItems: editOrderItems.map((item) => ({
+          id: item.id,
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+          price: item.price,
+          menuItemName: item.menuItemName,
+        })),
+      };
+      const res = await api.put(`/order/${orderId}`, payload);
+      if (res.status === 200) {
+        message.success("Chỉnh sửa đơn hàng thành công!");
+        setEditOrderModalVisible(false);
+        fetchMenuItems(selectedTable.id); // Cập nhật lại danh sách món ăn
       } else {
-        message.error("Tạo link thanh toán VNPay thất bại!");
+        message.error("Không thể chỉnh sửa đơn hàng!");
       }
     } catch (error) {
-      message.error(
-        `Lỗi thanh toán VNPay: ${
-          error.response?.data?.message || error.message
-        }`
-      );
+      message.error("Lỗi khi chỉnh sửa đơn hàng: " + error.message);
     } finally {
       setLoading((prev) => ({ ...prev, submit: false }));
     }
@@ -348,30 +338,39 @@ const TableManagement = () => {
         return;
       }
       const orderId = orderRes.data.data.id;
-  
+
       // Lặp qua từng món trong editOrderItems để cập nhật số lượng
       for (const item of editOrderItems) {
         if (!item.menuItemId || typeof item.quantity !== "number") {
-          message.error(`Dữ liệu không hợp lệ cho món ${item.menuItemName || "chưa xác định"}`);
+          message.error(
+            `Dữ liệu không hợp lệ cho món ${
+              item.menuItemName || "chưa xác định"
+            }`
+          );
           continue;
         }
-  
+
         const payload = {
           quantity: item.quantity, // Chỉ gửi số lượng
         };
-  
+
         const res = await api.put(
           `/order/${orderId}/items/${item.menuItemId}`, // Gọi API riêng cho từng menuItemId
           payload
         );
-  
+
         if (res.status === 200 && res.data.statusCode === 200) {
-          console.log(`Cập nhật thành công món ${item.menuItemName}:`, res.data.data);
+          console.log(
+            `Cập nhật thành công món ${item.menuItemName}:`,
+            res.data.data
+          );
         } else {
-          throw new Error(`Không thể cập nhật món ${item.menuItemName || item.menuItemId}`);
+          throw new Error(
+            `Không thể cập nhật món ${item.menuItemName || item.menuItemId}`
+          );
         }
       }
-  
+
       message.success("Chỉnh sửa đơn hàng thành công!");
       setEditOrderModalVisible(false);
       fetchMenuItems(selectedTable.id); // Cập nhật lại danh sách món ăn
