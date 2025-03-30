@@ -348,6 +348,9 @@ const TableManagement = () => {
         return;
       }
       const orderId = orderRes.data.data.id;
+      const menuItemId = orderRes.data.data.orderItems.map(
+        (item) => item.menuItemId
+      );
 
       // Lặp qua từng món trong editOrderItems để cập nhật số lượng
       for (const item of editOrderItems) {
@@ -355,7 +358,7 @@ const TableManagement = () => {
           quantity: item.quantity, // Chỉ gửi số lượng
         };
         const res = await api.put(
-          `/order/${orderId}/items/${item.menuItemId}`, 
+          `/order/${orderId}/items/${menuItemId}`,
           payload
         );
         if (res.status !== 200) {
