@@ -13,8 +13,6 @@ import {
   Empty,
   Divider,
   Popconfirm,
-  Modal,
-  InputNumber,
 } from "antd";
 import {
   ShoppingCartOutlined,
@@ -23,7 +21,6 @@ import {
   UserOutlined,
   LogoutOutlined,
   CheckOutlined,
-  EyeOutlined,
 } from "@ant-design/icons";
 import "./CafeManagement.css";
 import api from "../../config/axios";
@@ -36,10 +33,7 @@ const { Title, Text } = Typography;
 
 const TableManagement = () => {
   const [tableList, setTableList] = useState([]);
-  const [loading, setLoading] = useState({
-    table: false, // Loading cho danh sách bàn
-    submit: false, // Loading cho các action như thanh toán, xác nhận
-  });
+  const [loading, setLoading] = useState(false);
   const [selectedTable, setSelectedTable] = useState(null);
   const user = useSelector(selectUser);
   const navigate = useNavigate();
@@ -48,11 +42,7 @@ const TableManagement = () => {
   const [menuItems, setMenuItems] = useState([]);
   const [subOrderLoading, setSubOrderLoading] = useState(false);
   const [pendingItemsByTable, setPendingItemsByTable] = useState({});
-  const [totalAmountFromApi, setTotalAmountFromApi] = useState(0);
-  const [billModalVisible, setBillModalVisible] = useState(false);
-  const [billData, setBillData] = useState(null);
-  const [editOrderModalVisible, setEditOrderModalVisible] = useState(false);
-  const [editOrderItems, setEditOrderItems] = useState([]);
+  const [totalAmountFromApi, setTotalAmountFromApi] = useState(0); // Thêm state để lưu totalAmount từ menuItems
 
   const handleLogout = () => {
     setOrderLoading(true);
@@ -86,20 +76,18 @@ const TableManagement = () => {
   };
 
   const fetchTableList = async () => {
-    setLoading((prev) => ({ ...prev, table: true }));
+    setLoading(true);
     try {
       const res = await api.get(
         `/dining_table/restaurant/${user.restaurantId}`
       );
       if (res.status === 200 && res.data.data) {
-        const formattedTables = res.data.data
-          .sort((a, b) => a.id - b.id) // Sắp xếp theo id tăng dần
-          .map((table, index) => ({
-            id: table.id,
-            name: `Bàn ${index + 1}`, // Đặt tên bàn theo thứ tự tăng dần
-            status: getStatusText(table.status),
-            rawStatus: table.status,
-          }));
+        const formattedTables = res.data.data.map((table) => ({
+          id: table.id,
+          name: `Bàn ${table.id}`,
+          status: getStatusText(table.status),
+          rawStatus: table.status,
+        }));
         setTableList(formattedTables);
         formattedTables.forEach((table) => fetchSubOrders(table.id, false));
         if (formattedTables.length > 0 && !selectedTable) {
@@ -113,15 +101,17 @@ const TableManagement = () => {
     } catch (error) {
       message.error("Lỗi khi tải dữ liệu: " + error.message);
     } finally {
-      setLoading((prev) => ({ ...prev, table: false }));
+      setLoading(false);
     }
   };
 
   const fetchMenuItems = async (diningTableId) => {
     try {
       const res = await api.get(`/order/dining-table/${diningTableId}`);
+      console.log("fetchMenuItems response:", res.data); // Log để kiểm tra dữ liệu
       if (res.status === 200 && res.data.data && res.data.data.orderItems) {
         setMenuItems(res.data.data.orderItems);
+        // Tính totalAmount từ orderItems.price
         const total = res.data.data.orderItems.reduce(
           (sum, item) => sum + (item.price || 0),
           0
@@ -202,7 +192,6 @@ const TableManagement = () => {
   };
 
   const completeSubOrder = async (subOrderId) => {
-    setLoading((prev) => ({ ...prev, submit: true }));
     try {
       const res = await api.put(`/sub_order/${subOrderId}/complete`);
       if (res.status === 200) {
@@ -214,8 +203,6 @@ const TableManagement = () => {
       }
     } catch (error) {
       message.error("Lỗi khi xác nhận đơn hàng: " + error.message);
-    } finally {
-      setLoading((prev) => ({ ...prev, submit: false }));
     }
   };
 
@@ -224,8 +211,8 @@ const TableManagement = () => {
       message.error("Vui lòng chọn bàn trước khi thanh toán!");
       return;
     }
-    setLoading((prev) => ({ ...prev, submit: true }));
     try {
+      setOrderLoading(true);
       const orderRes = await api.get(`/order/dining-table/${selectedTable.id}`);
       if (!orderRes.data.data || !orderRes.data.data.id) {
         message.error("Không tìm thấy đơn hàng cho bàn này!");
@@ -246,7 +233,7 @@ const TableManagement = () => {
     } catch (error) {
       message.error("Lỗi khi thanh toán: " + error.message);
     } finally {
-      setLoading((prev) => ({ ...prev, submit: false }));
+      setOrderLoading(false);
     }
   };
 
@@ -255,21 +242,45 @@ const TableManagement = () => {
       message.error("Vui lòng chọn bàn trước khi thanh toán!");
       return;
     }
-    setLoading((prev) => ({ ...prev, submit: true }));
     try {
+      setOrderLoading(true);
+      console.log("Bắt đầu xử lý VNPay cho bàn:", selectedTable.id);
+
+      // Lấy thông tin đơn hàng
       const orderRes = await api.get(`/order/dining-table/${selectedTable.id}`);
+      console.log("Phản hồi từ /order/dining-table:", orderRes.data);
       if (!orderRes.data?.data || !orderRes.data.data.id) {
         message.error("Không tìm thấy đơn hàng cho bàn này!");
         return;
       }
       const orderId = orderRes.data.data.id;
+      console.log("Order ID:", orderId);
+
+      // Kiểm tra và chuẩn hóa amount
       const paymentAmount = Number(totalAmountFromApi) % 100;
+      console.log(
+        "Total amount trước khi gửi:",
+        totalAmountFromApi,
+        "Sau khi nhân 100:",
+        paymentAmount
+      );
       if (isNaN(paymentAmount) || paymentAmount <= 0) {
         message.error("Tổng tiền không hợp lệ hoặc bằng 0!");
         return;
       }
-      const paymentData = { amount: paymentAmount, orderId: orderId };
+
+      // Tạo payload
+      const paymentData = {
+        amount: paymentAmount,
+        orderId: orderId,
+      };
+      console.log("Payment data gửi đi:", paymentData);
+
+      // Gửi yêu cầu tạo link thanh toán
       const createRes = await api.post("/payment/create", paymentData);
+      console.log("Phản hồi từ /payment/create:", createRes.data);
+
+      // Kiểm tra status 200 hoặc 201
       if (
         (createRes.status === 200 || createRes.status === 201) &&
         createRes.data
@@ -278,102 +289,39 @@ const TableManagement = () => {
         if (typeof createRes.data === "object" && createRes.data.url) {
           paymentUrl = createRes.data.url;
         }
+        console.log("Payment URL đã xử lý:", paymentUrl);
         if (typeof paymentUrl === "string" && paymentUrl.startsWith("http")) {
           window.open(paymentUrl, "_blank");
-          console.log("Payment URL:", paymentUrl);
           message.success("Đang chuyển hướng đến VNPay...");
+          console.log("VNPay URL (cuối cùng):", paymentUrl); // Dòng bạn muốn thấy
         } else {
           message.error("URL thanh toán không hợp lệ!");
+          console.error("URL không đúng định dạng:", paymentUrl);
         }
       } else {
         message.error("Tạo link thanh toán VNPay thất bại!");
+        console.error("Phản hồi không mong đợi từ /payment/create:", createRes);
       }
     } catch (error) {
-      message.error(
-        `Lỗi thanh toán VNPay: ${
-          error.response?.data?.message || error.message
-        }`
+      console.error(
+        "Chi tiết lỗi VNPay:",
+        error.response?.data || error.message
       );
-    } finally {
-      setLoading((prev) => ({ ...prev, submit: false }));
-    }
-  };
-
-  const handleViewBill = async () => {
-    if (!selectedTable) {
-      message.error("Vui lòng chọn bàn trước khi xem bill!");
-      return;
-    }
-    setLoading((prev) => ({ ...prev, submit: true }));
-    try {
-      const orderRes = await api.get(`/order/dining-table/${selectedTable.id}`);
-      if (!orderRes.data.data || !orderRes.data.data.id) {
-        message.error("Không tìm thấy đơn hàng cho bàn này!");
-        return;
-      }
-      const orderId = orderRes.data.data.id;
-      const res = await api.get(`/order/${orderId}`);
-      if (res.status === 200 && res.data.data) {
-        setBillData(res.data.data);
-        setBillModalVisible(true);
+      if (error.response?.status === 500) {
+        message.error(
+          "Lỗi server: Không thể xử lý thanh toán VNPay. Vui lòng chọn bàn khác hoặc thử lại sau!"
+        );
       } else {
-        message.error("Không thể tải bill!");
+        message.error(
+          `Lỗi thanh toán VNPay: ${
+            error.response?.data?.message || error.message
+          }`
+        );
       }
-    } catch (error) {
-      message.error("Lỗi khi tải bill: " + error.message);
     } finally {
-      setLoading((prev) => ({ ...prev, submit: false }));
+      setOrderLoading(false);
     }
   };
-
-  const handleEditOrder = () => {
-    if (!selectedTable) {
-      message.error("Vui lòng chọn bàn trước khi chỉnh sửa!");
-      return;
-    }
-    setEditOrderItems(menuItems.map((item) => ({ ...item }))); // Sao chép menuItems để chỉnh sửa
-    setEditOrderModalVisible(true);
-  };
-
-  const handleSaveEditOrder = async () => {
-    if (!selectedTable) {
-      message.error("Vui lòng chọn bàn trước khi lưu!");
-      return;
-    }
-    setLoading((prev) => ({ ...prev, submit: true }));
-    try {
-      const orderRes = await api.get(`/order/dining-table/${selectedTable.id}`);
-      if (!orderRes.data.data || !orderRes.data.data.id) {
-        message.error("Không tìm thấy đơn hàng cho bàn này!");
-        return;
-      }
-      const orderId = orderRes.data.data.id;
-      const payload = {
-        id: orderId,
-        diningTableId: selectedTable.id,
-        orderItems: editOrderItems.map((item) => ({
-          id: item.id,
-          menuItemId: item.menuItemId,
-          quantity: item.quantity,
-          price: item.price,
-          menuItemName: item.menuItemName,
-        })),
-      };
-      const res = await api.put(`/order/${orderId}`, payload);
-      if (res.status === 200) {
-        message.success("Chỉnh sửa đơn hàng thành công!");
-        setEditOrderModalVisible(false);
-        fetchMenuItems(selectedTable.id); // Cập nhật lại danh sách món ăn
-      } else {
-        message.error("Không thể chỉnh sửa đơn hàng!");
-      }
-    } catch (error) {
-      message.error("Lỗi khi chỉnh sửa đơn hàng: " + error.message);
-    } finally {
-      setLoading((prev) => ({ ...prev, submit: false }));
-    }
-  };
-
   useEffect(() => {
     fetchTableList();
     const interval = setInterval(() => {
@@ -467,7 +415,6 @@ const TableManagement = () => {
             type="primary"
             icon={<CheckOutlined />}
             onClick={() => completeSubOrder(record.subOrderId)}
-            loading={loading.submit}
           >
             Xác nhận
           </Button>
@@ -475,7 +422,7 @@ const TableManagement = () => {
     },
   ];
 
-  const totalAmount = totalAmountFromApi;
+  const totalAmount = totalAmountFromApi; // Dùng totalAmount từ menuItems
 
   const handleTableSelect = (table) => {
     setSelectedTable(table);
@@ -530,7 +477,7 @@ const TableManagement = () => {
           <Title level={5} style={{ marginBottom: 16, textAlign: "center" }}>
             Danh Sách Bàn
           </Title>
-          {loading.table ? (
+          {loading ? (
             <div style={{ textAlign: "center", padding: "40px 0" }}>
               <Spin tip="Đang tải..." />
             </div>
@@ -617,6 +564,7 @@ const TableManagement = () => {
             onConfirm={handleLogout}
             okText="Yes"
             cancelText="No"
+            block
           >
             <Button type="primary" icon={<LogoutOutlined />}>
               Logout
@@ -636,6 +584,7 @@ const TableManagement = () => {
                 className="order-details-card"
                 bordered={false}
                 style={{ borderRadius: 8, height: "100%" }}
+                extra={subOrderLoading ? <Spin size="small" /> : null}
               >
                 {selectedTable && (
                   <div style={{ marginBottom: 24 }}>
@@ -674,6 +623,7 @@ const TableManagement = () => {
                             </div>
                           </div>
                         ))}
+                        {/* Thêm tổng cộng ngay dưới danh sách */}
                         <div
                           style={{
                             display: "flex",
@@ -691,13 +641,6 @@ const TableManagement = () => {
                             {totalAmount.toLocaleString()}đ
                           </Text>
                         </div>
-                        <Button
-                          type="link"
-                          onClick={handleEditOrder}
-                          style={{ marginTop: 12 }}
-                        >
-                          Chỉnh sửa đơn hàng
-                        </Button>
                       </div>
                     ) : (
                       <Empty
@@ -716,6 +659,27 @@ const TableManagement = () => {
                   locale={{ emptyText: "Chưa có món ăn nào được chọn" }}
                   rowClassName="order-table-row"
                   style={{ marginBottom: 24 }}
+                  // summary={() => (
+                  //   <Table.Summary>
+                  //     <Table.Summary.Row>
+                  //       <Table.Summary.Cell
+                  //         colSpan={3}
+                  //         style={{ textAlign: "right" }}
+                  //       >
+                  //         <Text strong>Tổng cộng:</Text>
+                  //       </Table.Summary.Cell>
+                  //       <Table.Summary.Cell style={{ textAlign: "right" }}>
+                  //         <Text
+                  //           strong
+                  //           style={{ color: "#f5222d", fontSize: 16 }}
+                  //         >
+                  //           {totalAmount.toLocaleString()}đ
+                  //         </Text>
+                  //       </Table.Summary.Cell>
+                  //       <Table.Summary.Cell></Table.Summary.Cell>
+                  //     </Table.Summary.Row>
+                  //   </Table.Summary>
+                  // )}
                 />
               </Card>
             </Col>
@@ -777,7 +741,7 @@ const TableManagement = () => {
                   }
                   style={{ height: "46px", fontSize: "16px" }}
                   onClick={handlePayment}
-                  loading={loading.submit}
+                  loading={orderLoading}
                 >
                   Thanh Toán
                 </Button>
@@ -796,102 +760,15 @@ const TableManagement = () => {
                     marginTop: "10px",
                   }}
                   onClick={handleVNPay}
-                  loading={loading.submit}
+                  loading={orderLoading}
                 >
                   VNPay
-                </Button>
-                <Button
-                  type="primary"
-                  size="large"
-                  block
-                  icon={<EyeOutlined />}
-                  disabled={!selectedTable}
-                  style={{
-                    height: "46px",
-                    fontSize: "16px",
-                    marginTop: "10px",
-                  }}
-                  onClick={handleViewBill}
-                  loading={loading.submit}
-                >
-                  Xem Bill
                 </Button>
               </Card>
             </Col>
           </Row>
         </Content>
       </Layout>
-
-      {/* Modal Xem Bill */}
-      <Modal
-        title="Hóa đơn"
-        open={billModalVisible}
-        onCancel={() => setBillModalVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setBillModalVisible(false)}>
-            Đóng
-          </Button>,
-        ]}
-      >
-        {billData ? (
-          <div>
-            <Text strong>ID Đơn hàng: </Text>
-            <Text>{billData.id}</Text>
-            <br />
-            <Text strong>Bàn: </Text>
-            <Text>
-              {tableList.find((t) => t.id === billData.diningTableId)?.name}
-            </Text>
-            <br />
-            <Text strong>Trạng thái: </Text>
-            <Text>{billData.status}</Text>
-            <br />
-            <Text strong>Danh sách món ăn:</Text>
-            {billData.orderItems.map((item) => (
-              <div key={item.id} style={{ marginTop: 8 }}>
-                <Text>
-                  - {item.menuItemName} (x{item.quantity}):{" "}
-                </Text>
-                <Text strong>{item.price.toLocaleString()}đ</Text>
-              </div>
-            ))}
-            <Divider />
-            <Text strong>Tổng cộng: </Text>
-            <Text strong style={{ color: "#f5222d" }}>
-              {billData.totalPrice.toLocaleString()}đ
-            </Text>
-          </div>
-        ) : (
-          <Empty description="Không có dữ liệu bill" />
-        )}
-      </Modal>
-
-      {/* Modal Chỉnh sửa đơn hàng */}
-      <Modal
-        title="Chỉnh sửa đơn hàng"
-        open={editOrderModalVisible}
-        onCancel={() => setEditOrderModalVisible(false)}
-        onOk={handleSaveEditOrder}
-        confirmLoading={loading.submit}
-      >
-        {editOrderItems.map((item, index) => (
-          <div key={item.id} style={{ marginBottom: 16 }}>
-            <Text strong>{item.menuItemName}</Text>
-            <InputNumber
-              min={0}
-              value={item.quantity}
-              onChange={(value) =>
-                setEditOrderItems((prev) =>
-                  prev.map((i, idx) =>
-                    idx === index ? { ...i, quantity: value } : i
-                  )
-                )
-              }
-              style={{ marginLeft: 16 }}
-            />
-          </div>
-        ))}
-      </Modal>
     </Layout>
   );
 };
