@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Result, Button, message } from "antd";
 import { CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -8,18 +8,18 @@ function PaySuccess() {
   const navigate = useNavigate();
   const { orderId } = useParams();
   const [searchParams] = useSearchParams();
+  const [paymentStatus, setPaymentStatus] = useState(null); // Trạng thái thanh toán
+  const [isLoading, setIsLoading] = useState(true); // Trạng thái loading
 
-  // Hàm điều hướng về trang danh sách bàn
   const handleBackToTables = () => {
     navigate("/TableManagement");
   };
 
-  // Hàm gọi API callback khi thanh toán thành công
   const callPaymentCallback = async (amount, orderId) => {
     try {
       const payload = {
-        amount: Number(amount) / 100, // Chia cho 100 để ra VND
-        orderId: Number(orderId), // Đảm bảo orderId là số
+        amount: Number(amount) / 100,
+        orderId: Number(orderId),
       };
       const response = await api.post("/payment/callback", payload);
       if (response.status === 200) {
@@ -29,6 +29,7 @@ function PaySuccess() {
       }
     } catch (error) {
       message.error("Lỗi khi gọi callback API: " + error.message);
+      console.error("Callback error:", error);
     }
   };
 
@@ -36,66 +37,74 @@ function PaySuccess() {
     const amount = searchParams.get("vnp_Amount");
     const transactionStatus = searchParams.get("vnp_TransactionStatus");
 
-    if (orderId) {
-      console.log("Order ID:", orderId);
-      if (amount) {
-        const formattedAmount = Number(amount) / 100;
-        console.log(
-          "Số tiền thanh toán:",
-          formattedAmount.toLocaleString(),
-          "VND"
-        );
+    // Debug dữ liệu nhận được
+    console.log("Search Params:", Object.fromEntries(searchParams));
+    console.log("Order ID:", orderId);
+    console.log("Amount:", amount);
+    console.log("Transaction Status:", transactionStatus);
 
-        if (transactionStatus === "00") {
-          // Thanh toán thành công
-          console.log("Thanh toán thành công!");
-          message.success("Thanh toán thành công!");
-          callPaymentCallback(amount, orderId);
-        } else {
-          // Thanh toán không thành công
-          console.log(
-            "Thanh toán không thành công, trạng thái:",
-            transactionStatus
-          );
-          message.error("Thanh toán không thành công!");
-        }
-      } else {
-        console.log("Không tìm thấy số tiền trong query params");
-        message.error("Không tìm thấy thông tin thanh toán!");
-      }
+    if (!orderId) {
+      message.error("Không tìm thấy mã đơn hàng!");
+      setPaymentStatus("error");
+      setIsLoading(false);
+      return;
     }
+
+    if (!amount || !transactionStatus) {
+      message.error("Thiếu thông tin thanh toán từ VNPay!");
+      setPaymentStatus("error");
+      setIsLoading(false);
+      return;
+    }
+
+    const formattedAmount = Number(amount) / 100;
+    if (transactionStatus === "00") {
+      setPaymentStatus("success");
+      message.success(
+        `Thanh toán thành công ${formattedAmount.toLocaleString()} VND!`
+      );
+      callPaymentCallback(amount, orderId);
+    } else {
+      setPaymentStatus("error");
+      message.error("Thanh toán không thành công!");
+    }
+    setIsLoading(false);
   }, [orderId, searchParams]);
+
+  if (isLoading) {
+    return (
+      <div style={{ textAlign: "center", padding: "50px" }}>
+        <p>Đang xử lý kết quả thanh toán...</p>
+      </div>
+    );
+  }
 
   return (
     <div
       style={{
-        minHeight: "10vh",
+        minHeight: "100vh",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
       }}
     >
       <Result
-        status={
-          searchParams.get("vnp_TransactionStatus") === "00"
-            ? "success"
-            : "error"
-        }
+        status={paymentStatus}
         icon={
-          searchParams.get("vnp_TransactionStatus") === "00" ? (
+          paymentStatus === "success" ? (
             <CheckCircleOutlined style={{ color: "#52c41a" }} />
           ) : (
             <CloseCircleOutlined style={{ color: "#ff4d4f" }} />
           )
         }
         title={
-          searchParams.get("vnp_TransactionStatus") === "00"
+          paymentStatus === "success"
             ? "Thanh Toán Thành Công!"
             : "Thanh Toán Không Thành Công!"
         }
         subTitle={
           orderId
-            ? searchParams.get("vnp_TransactionStatus") === "00"
+            ? paymentStatus === "success"
               ? `Đơn hàng ${orderId} đã được thanh toán thành công${
                   searchParams.get("vnp_Amount")
                     ? ` với số tiền ${(
