@@ -22,6 +22,7 @@ import Manager from "./components/pages/Manager/Manager";
 // import AddMenu from "./components/pages/AddMenu/AddMenu";
 import CreateMenu from "./components/pages/CreateMenu/CreateMenu";
 import MenuResId from "./components/pages/MenuResId/MenuResId";
+import Quiz from "./components/pages/Quiz/Quiz";
 
 import PaySuccess from "./components/pages/PaySuccess/PaySuccess";
 
@@ -56,6 +57,10 @@ function App() {
     {
       path: "/CreateRestaurant",
       element: <CreateRestaurant />,
+    },
+    {
+      path: "/quiz",
+      element: <Quiz />,
     },
     {
       path: "/paysuccess/:orderId",
